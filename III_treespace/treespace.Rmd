@@ -1,0 +1,1096 @@
+  
+***  
+
+---
+title: "III. Tree space"
+author: "Deise Goncalves"
+date: "2018/06/04"
+output:html_document: default
+pdf_document: default
+subtitle: "Exploring the tree landscape"
+---  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+  
+***  
+
+*Citation:*  
+__Gonçalves, DJP, Simpson, BB, Ortiz, EM, Shimizu, GH, Jansen, RK. Incongruence between species tree and gene trees and phylogenetic signal variation in plastid genes. Molecular Phylogenetics and Evolution. In review__  
+
+__DJP Gonçalves, BB Simpson, GH Shimizu, RK Jansen, EM Ortiz. Genome assembly and phylogenomic data analyses using plastid data: contrasting species tree estimation methods. Data in Brief. Submitted__  
+  
+***  
+
+### Landscape of species and gene tree topologies inferred with 62 plastid protein-coding genes
+
+Here we present the code used to calculate the vectors of Robinson-Foulds (RF) and Kendall-Colijn (KC) distances in two different ways:  
+
+1. We look at the species tree landscape. In our study we perfomed species tree searches using 78 plastid protein-coding genes of 89 species of rosids (and 5 outgroups) using four different alignments:  
+
+  + gene (CDS+introns, nucleotide alignment),  
+  + exon (CDS, nucleotide alignment),  
+  + codon (CDS, codon alignment), and  
+  + amino acid (CDS, alignment of translated nucleotides)  
+
+The phylogenetic analysis were performed with these four matrices under Maximum likelihood (IQ-TREE) with different schemes of data partition (unpartitioned, partitioned by gene, and best scheme of partition) and the Multispecies Coalescent (MSC) methods; a summary method (ASTRAL-II) and a complete search (SVDquartets).
+
+2. Then we explored the landscape of species trees compared to the distribution of gene tree topologies for each of our four matrices. Gene tree topologies were inferred using ML in separate runs for each gene, for each of our four matrices. Here, we present the distance of gene trees representing 62 genes* to the species trees. Note that the species trees were inferred with 78 genes.
+In this tutorial we use the following acronyms:
+  * gene - ge  
+  * exon - ex  
+  * codon - cd  
+  * amino acid - aa  
+  * IQ-TREE - iq  
+  * ASTRAL-II - as  
+  * SVDQuartets - sv  
+  * concatenated - c  
+  * gene partition - gp  
+  * best schme of partition - bs  
+  * RF - Robinson-Foulds  
+  * KC - Kendall-Colijn  
+
+First, upload the following packages:
+```{r import, include = "false"}
+library(treespace)
+library(adegenet)
+library(adegraphics)
+library(ggplot2)
+library(ggrepel)
+library(dplyr)
+library(phangorn)
+library(cowplot)
+```
+
+Treespace package requires all trees to have the same terminals. In other words, if you have species (i.e., terminals) that lost one or a few genes, you will have to remove those species or those genes from the analysis. Here we removed three species that had a high number of missing data and 16 genes.
+
+*Tip:*
+We used sumtrees.py to suppress the annotations and to root the trees. We need rooted the trees for KC. However, we will have to unroot them for RF part.
+```{r}
+#First, using sumtrees.py, remove all the annotations of the tree:
+#for file in *.tre; do sumtrees.py -F newick --suppress-annotations -p -d 0 --root-target-at-outgroup "Apiales_Araliaceae_Aralia_undulata" -o ../output_nwk/${file//.tre/.nwk} $file; done
+```
+After we suppressed the annotations, in a text editor, we preparee a nexus file with all the trees and labelled them accordingly.
+
+
+Setting the working directory before start.
+```{r}
+setwd(getwd())
+```
+
+Next, we removed three species from the dataset so all the trees have the same terminals.
+Here we also rooted the trees, needed for KC metric.
+```{r}
+#Prepare a nexus file with the trees that you want to drop tips:
+#trees_droptip <- read.nexus("./input_prep/dropping_tips.nex")
+
+#As I have multiple trees in a single nexus file, I am using lapply in addition to drop.tip, so the three species indicated are removed from all trees:
+#trees_droptip <- lapply(trees_droptip, drop.tip, c("Caryophyllales_Caryophyllaceae_Silene_capitata", "Myrtales_Myrtaceae_Xanthostemon_chrysanthus","Fabales_Polygalaceae_Polygala_alba"))
+
+#Then I verify the class of my tree object and I assign it as a "multiphylo" object, meaning that it has multiple trees:
+#class(trees_droptip)
+#class(trees_droptip) <- "multiPhylo"
+#class(trees_droptip)
+
+#Saving a file with the new rooted trees:
+#write.tree(trees_droptip, file="./input_prep/tipsdropped_rooted.nwk", d=0)
+#To make sure my trees are unrooted (necessary for RF) I use unroot() and then I save the new trees in a newick file:
+#trees_droptip <- unroot(trees_droptip)
+#write.tree(trees_droptip, file="./input_prep/tipsdropped_unrooted.nwk", d=0)
+```
+  
+Then we opened the file, and prepared a new nexus file with all species trees from all of our analysis. We labelled the trees with information about method, matrix, and partitioned scheme (for IQ-TREE). 
+
+## 1. Species Tree Landscape 
+### 1.1. Robinson-Foulds (unrooted trees)
+Distance between species trees inferred using MSC and ML (concatenated and partitioned by gene and by best scheme):
+```{r}
+#reading the nexus file with all the species trees and confirming they are unrooted
+tree_allspp_nrtd <- read.nexus("./input_unrooted/allsptrees_tipsdropped_unrooted.nex")
+tree_allspp_nrtd
+#class(tree_allspp_nrtd)
+is.rooted.multiPhylo(tree_allspp_nrtd)
+```
+
+Getting the names of the trees:
+```{r}
+tree_names_allspp_nrtd <- names(tree_allspp_nrtd)
+tree_names_allspp_nrtd
+```
+
+Now we calculate the distances between the trees using "RF" for unweighted Robinson-Foulds distance:
+```{r}
+treespace_allspp_nrtd <- treespace(tree_allspp_nrtd, method = "RF", nf = 18)
+#If you see "Zero distance(s)" you can check below and look for the tree(s) that are identical
+#For example: use the code below to check iq_ex_c distance fom iq_ex_gp and iq_ex_bs is 0, meaning that these trees have no differences
+#head(treespace_allspp_nrtd)
+
+#Now you can see the values of the PCoA axes
+head(treespace_allspp_nrtd$pco$li)
+```
+
+We use the round() and sum() to verify the percentage explained by each axis in the ordination:
+```{r}
+#Eigen values are measurements of variance, so to calculate the percentage explained by each axis, just divide the eigen value by the sum of all eigen values
+round(treespace_allspp_nrtd$pco$eig/sum(treespace_allspp_nrtd$pco$eig),3) #the number three indicates three digits
+#Axis1 = 0.345, Axis2 = 0.202, Axis3 = 0.115; Axis4 = 0.083, Axis5 = 0.069
+```
+
+Then we find the clusters or trees using unweighted Robinson-Foulds:
+```{r}
+#Since this step is interactive, I used the lines below to determine that the number of clusters is 2
+#id_cluster_nrtd <- findGroves(treespace_allspp_nrtd, method = "RF")
+#"Please define a cutoff point:""
+#40
+#y
+
+#Now I run the same code defining "nclust = 2"
+id_cluster_nrtd <- findGroves(treespace_allspp_nrtd, method = "RF", nclust = 2)
+```
+
+Then we plot again to check:
+```{r}
+plotGrovesD3(id_cluster_nrtd, treeNames = tree_names_allspp_nrtd)
+#head(id_cluster_nrtd)
+```
+
+Now we include the information about the software utilized in the phylogenetic inference:
+```{r}
+methods_as_sv_iq <- read.csv("allsptrees.csv", h=F)
+class(methods_as_sv_iq)
+#head(methods_as_sv_iq)
+```
+
+We then gathered vectors with usefull information and added in a new dataframe which includes: the axis of the ordination calculated by treespace(), cluster information about the methods, the names of the trees, and groups clustered, calculated with findGroves().
+```{r}
+shorter_names <- c("ge", "ex", "cd", "aa", "ge", "ex", "cd", "ge_c", "ex_c", "cd_c", "aa_c", "ge_gp", "ex_gp", "cd_gp", "aa_gp", "ge_bs", "ex_bs", "cd_bs", "aa_bs")
+df_nrtd <- data.frame(id_cluster_nrtd$treespace$pco$li, dataset=tree_names_allspp_nrtd,
+                      Method=methods_as_sv_iq$V1, group=id_cluster_nrtd$groups,
+                      name=rownames(id_cluster_nrtd$treespace$pco$li), Shorter_names=shorter_names)
+#head(df_nrtd)
+```
+
+Now we included one last column with information about the method of phylogenetic inference, MSC or ML ("iqtree"):
+```{r}
+df_nrtd["coalesc_x_concat"]<- c("msc", "msc", "msc", "msc", "msc", "msc", "msc", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree")
+class(df_nrtd$coalesc_x_concat)
+#head(df_nrtd)
+```
+
+Finally, we gathered the level of the three software utilized and reordered the "coalesc_x_concat" column so we have data from astral and svdq in sequence.
+```{r}
+df_nrtd$Method <- factor(df_nrtd$Method, levels = as.ordered(levels(df_nrtd$Method)))
+df_nrtd_arranged <- arrange(df_nrtd, desc(coalesc_x_concat))
+#head(df_nrtd_arranged)
+```
+
+Now we plot the Robinson-Foulds graph.  
+
+```{r fig.height=5, fig.width=7}
+#This is to put in order: "astral, svdq, iqtree"
+df_nrtd$Method <- factor(df_nrtd$Method, levels(df_nrtd$Method)[c(1,3,2)]) 
+
+#Now ploting the species tree landscape
+plot1_RF <- ggplot(df_nrtd, aes(x=A1, y=A2, size=3, label=Shorter_names, color=Method, shape=Method)) + 
+  geom_point(alpha=1) + 
+  guides(size=F) + geom_hline(yintercept = 0, linetype="dashed") +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  geom_text_repel(size=6, box.padding=1.5, point.padding = 0.8, show.legend=FALSE) +
+  labs(x="PCoA1 (34.5%)", y=" PCoA2 (20.2%)") + 
+  theme_classic() + ggtitle("Robinson-Foulds") +
+  theme(legend.text=element_text(size=20),legend.title=element_text(size=20), plot.title = element_text(size=20, hjust = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  theme(axis.title=element_text(size = 18,face="bold"), axis.text=element_text(size=14,face="bold")) +
+  scale_colour_manual(values = c("#000000", "#E69F00", "#56B4E9"))+
+  scale_shape_manual(values=c(17, 17, 19)) 
+plot1_RF
+```
+
+
+### 1.2. Kendall-Colijn (rooted trees)  
+Distance between species trees inferred using MSC and ML (Unpartitioned, partitioned by gene, and partitioned by best scheme):  
+
+```{r}
+trees_allspp_rtd <- read.nexus("./input_rooted/allsptrees_tipsdropped_rooted.nex")
+trees_allspp_rtd
+trees_allspp_rtd <- root(trees_allspp_rtd, "Apiales_Araliaceae_Aralia_undulata", resolve.root = TRUE)
+class(trees_allspp_rtd)
+is.rooted.multiPhylo(trees_allspp_rtd)
+```
+
+```{r}
+trees_allspp_rtd_names <- names(trees_allspp_rtd)
+trees_allspp_rtd_names
+```
+
+Now we calculate the distances between the trees using KC, the default of treespace():
+```{r}
+#Calculating the treespace
+treespace_allspp_rtd <- treespace(trees_allspp_rtd, nf=18)
+#head(treespace_allspp_rtd)
+#head(treespace_allspp_rtd$pco$li)
+```
+
+We use the round() and sum() to verify the percentage explained by each axis in the ordination:
+```{r}
+round(treespace_allspp_rtd$pco$eig/sum(treespace_allspp_rtd$pco$eig),3)
+#Axis1 = 97.2%, Axis2 = 1.5%, Axis3 = 1.0%
+```
+
+Then we find the clusters or trees using Kendall-Colijn metric:
+```{r}
+id_cluster_rtd <- findGroves(treespace_allspp_rtd, method = "treeVec", nclust = 3)
+#125
+#y
+```
+
+Then we plot again to check:
+```{r}
+plotGrovesD3(id_cluster_rtd, treeNames = trees_allspp_rtd_names)
+```
+
+Now we include the information about the software utilized in the phylogenetic inferrence:
+```{r}
+methods_as_sv_iq <- read.csv("allsptrees.csv", h=F)
+class(methods_as_sv_iq)
+#head(methods_as_sv_iq)
+```
+Note that the object above is a datafram, so "V1" is a vector and to gather its information we had to use "methods_as_sv_iq$V1" in the code below.
+
+
+And then we prepared a dataframe with all the information that we will need to plot the data:
+```{r, "echo = FALSE"}
+shorter_names <- c("ge", "ex", "cd", "aa", "ge", "ex", "cd", "ge_c", "ex_c", "cd_c", "aa_c", "ge_gp", "ex_gp", "cd_gp", "aa_gp", "ge_bs", "ex_bs", "cd_bs", "aa_bs")
+df_rtd <- data.frame(id_cluster_rtd$treespace$pco$li, dataset=trees_allspp_rtd_names,
+                     Method=methods_as_sv_iq$V1, group=id_cluster_rtd$groups,
+                     name=rownames(id_cluster_rtd$treespace$pco$li), shorter_names=shorter_names)
+#head(df_rtd)
+```
+
+
+```{r}
+df_rtd["coalesc_x_concat"]<- c("msc", "msc", "msc", "msc", "msc", "msc", "msc", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree", "iqtree")
+class(df_rtd$coalesc_x_concat)
+#head(df_rtd)
+```
+
+```{r}
+df_rtd$Method <- factor(df_rtd$Method, levels = as.ordered(levels(df_rtd$Method)))
+df_rtd_arranged <- arrange(df_rtd, desc(coalesc_x_concat))
+#head(df_rtd_arranged)
+```
+
+```{r}
+#change order to avoid overlapping
+df2_rtd_arranged <- arrange(df_rtd_arranged, desc(Method))
+#head(df2_rtd_arranged)
+```
+
+```{r fig.height=5, fig.width=7}
+df2_rtd_arranged$Method <- factor(df2_rtd_arranged$Method, levels(df2_rtd_arranged$Method)[c(1,3,2)]) 
+
+plot2_KC <- ggplot(df2_rtd_arranged, aes(x=A1, y=A2, color=Method, size=4, label=shorter_names, shape=Method)) +
+  geom_point(alpha=1) + 
+  guides(size=F) + geom_hline(yintercept = 0, linetype="dashed") +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  geom_text_repel(size=6, box.padding=1.5, point.padding = 0.8, show.legend=FALSE) +
+  labs(x="PCoA1 (97.2%)", y=" PCoA2 (1.5%)") + 
+  theme_classic() + ggtitle("Kendall-Colijn") +
+  theme(legend.text=element_text(size=20),legend.title=element_text(size=20), 
+        plot.title = element_text(size=20, hjust = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  theme(axis.title=element_text(size = 18,face="bold"), axis.text=element_text(size=14,face="bold")) +
+  scale_colour_manual(values = c("#000000", "#E69F00", "#56B4E9"))+
+  scale_shape_manual(values=c(17, 17, 19))
+plot2_KC
+```
+
+
+Now we combine both graphs using plot_grid()
+First, create a legend for plot1_RF, then combine both graphs without, and then add the legend:
+```{r fig.height=9, fig.width=7}
+#Here we create an object that contains the legend that will be used in the grid to combine two graphs
+legend <- get_legend(plot1_RF + theme(legend.position="bottom"))
+
+two_plots <- plot_grid(plot1_RF + theme(legend.position="none"), plot2_KC +
+                      theme(legend.position="none"), align = 'vh', 
+                      labels = c("A", "B"), hjust = 1, nrow = 2) 
+two_plots
+
+#Now adding the legend
+two_plots_onelegend <- plot_grid(two_plots, legend, rel_heights = c(6, .5), hjust = 1, nrow = 2)
+two_plots_onelegend
+
+#Finally adding a title
+title <- ggdraw() + draw_label("Species Trees Landscape", fontface='bold', size = 18)
+sp_tree_plot <- plot_grid(title, two_plots_onelegend, ncol=1, rel_heights=c(.1, 1.5))
+sp_tree_plot
+```
+
+```{r}
+#Saving pdf determining the size of the figure:
+#save_plot("./plot_sp_trees_2.pdf", sp_tree_plot, base_width=6, base_height=12)
+```
+
+
+
+Now let's look at species trees versus gene trees, using RF and KC metric for each dataset.   
+
+## 2. Gene trees versus species trees  
+### 2.1. Gene matrix   
+#### 2.1.1. RF (gene matrix)
+```{r}
+#tree <- read.nexus("genetrees.nex")
+#first let's confirm we dropped the tips of species that are not present in all trees and let's unroot the tree
+#tree_gerf <- lapply(tree, drop.tip, c("Caryophyllales_Caryophyllaceae_Silene_capitata", "Myrtales_Myrtaceae_Xanthostemon_chrysanthus", "Fabales_Polygalaceae_Polygala_polygama"))
+#class(tree)
+#class(tree) <- "multiPhylo"
+#class(tree)
+#tree <- unroot(tree)
+#write.tree(tree, file="genetrees_unrooted.nwk", d=0)
+```
+
+```{r}
+tree_gerf <- read.nexus("./input_unrooted/all_spgenetree_ge_rf.nex")
+class(tree_gerf)
+tree_names_gerf <- names(tree_gerf)
+tree_names_gerf
+is.rooted.multiPhylo(tree_allspp_nrtd)
+```
+
+```{r}
+method_gerf <- read.csv("all_spgenetree.csv", h=F)
+class(method_gerf)
+```
+
+```{r}
+#Calculating the distances
+treespace_gerf <- treespace(tree_gerf,  method = "RF", nf=66)
+#head(treespace_gerf)
+#head(treespace_gerf$pco$li)
+plotGrovesD3(treespace_gerf$pc, treeNames = tree_names_gerf)
+```
+
+```{r}
+#Detecting the number of groups
+#id_cluster_gerf <- findGroves(treespace_gerf, method = "RF")
+#250
+#y
+
+id_cluster_gerf <- findGroves(treespace_gerf, method = "RF", nclust = 2)
+```
+
+```{r}
+plotGrovesD3(id_cluster_gerf, treeNames = tree_names_gerf)
+```
+
+```{r}
+#making a dataframe with the coordinates of the trees calculated by treespace(), cluster information, and rownmes 
+#for names of trees; group is not necessary because I have already calculated the number of groups with findGroves()
+df_gerf <- data.frame(id_cluster_gerf$treespace$pco$li, dataset=tree_names_gerf, Method=method_gerf$V1,
+                      group=id_cluster_gerf$groups, name=rownames(id_cluster_gerf$treespace$pco$li))
+#head(df_gerf)
+```
+
+
+```{r}
+#The names of all gene trees
+#df_gerf["sptree_vs_getree_1"] <- c("as", "sv", "c", "gp", "bs", "atpA", "atpB", "atpE", "atpF", "atpH", "atpI", "cemA", "matK", "ndhA", "ndhB", "ndhC", "ndhD", "ndhE", "ndhF", "ndhG", "ndhI", "ndhJ", "petB", "petD", "petG", "petL", "petN", "psaA", "psaB", "psaC", "psaI", "psaJ", "psbA", "psbB", "psbC", "psbD", "psbE", "psbF", "psbH", "psbI", "psbJ ", "psbK ", "psbM", "psbN", "psbT", "psbZ", "rbcL", "rpl14", "rpl20", "rpl23", "rpl2", "rpl33", "rpl36", "rpoB", "rpoC1", "rpoC2", "rps11", "rps12", "rps14", "rps15", "rps18", "rps2", "rps3", "rps4", "rps7", "rps8", "ycf3" )
+#head(df_gerf)
+```
+
+Adding a column with some labels following the identical order. This information will be used to plot only these names:
+```{r}
+df_gerf["sptree_vs_getree"] <- c("as", "sv", "c", "gp", "bs", NA, NA, NA, NA, NA, NA, NA, "matK", NA, NA, NA, NA, NA, "ndhF", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, "rbcL", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+#head(df_gerf)
+```
+
+```{r}
+#change order to avoid overlapping
+df2_ge_arrangedrf <- arrange(df_gerf, desc(Method))
+#head(df2_ge_arrangedrf)
+
+#getting the name for the legend
+#colnames(df2_ge_arrangedrf$Method)
+```
+
+
+```{r}
+#We use the round() and sum() to verify the percentage explained by each axis in the ordination
+round(treespace_gerf$pco$eig/sum(treespace_gerf$pco$eig),3)
+#Axis1 = 0.157, Axis2 = 0.049, Axis3 = 0.042, Axis4 = 0.041, Axis5 = 0.040
+```
+
+```{r}
+#Now we plot the graph
+df2_ge_arrangedrf$Method <- factor(df2_ge_arrangedrf$Method, levels(df2_ge_arrangedrf$Method)[c(1,6,2:5)])
+plot_RF_ge <- ggplot(df2_ge_arrangedrf, aes(x=A1, y=A2, color = Method, label = sptree_vs_getree)) +
+  geom_point(aes(color=Method, shape=Method),alpha=.8, size=4) +
+  guides(size=F) + geom_hline(yintercept = 0, linetype="dashed") +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  geom_text_repel(size=6, box.padding=2, point.padding = 0.8, show.legend=FALSE) +
+  labs(x="PCoA1 (15.7%)", y=" PCoA2 (4.9%)") + 
+  theme_classic() + ggtitle("Robinson-Foulds - gene") +
+  theme(legend.text=element_text(size=12),legend.title=element_text(size=15),
+        plot.title = element_text(hjust = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  theme(axis.title=element_text(size = 12,face="bold"), axis.text=element_text(size=10,face="bold"))  +
+  scale_colour_manual(values = c("#000000", "#E69F00", "#CC79A7", "#009E73", "#F0E442", "#56B4E9"))+
+  scale_shape_manual(values=c(17, 17, 19, 19, 19, 19))
+plot_RF_ge
+```
+
+
+#### 2.1.2. KC (gene matrix)
+```{r}
+tree_gekc <- read.nexus("./input_rooted/all_spgenetree_ge_kc.nex")
+tree_gekc
+tree_gekc <- root(tree_gekc, "Apiales_Araliaceae_Aralia_undulata", resolve.root = TRUE)
+class(tree_gekc)
+is.rooted.multiPhylo(tree_gekc)
+```
+
+
+```{r}
+tree_names_gekc <- names(tree_gekc)
+tree_names_gekc
+```
+
+
+```{r}
+#This is to identify the metadata
+method_gekc <- read.csv("all_spgenetree.csv", h=F)
+```
+
+```{r}
+#Calculating the treespace
+treespace_gekc <- treespace(tree_gekc, nf=66)
+#head(treespace_gekc)
+#head(treespace_gekc$pco$li)
+plotGrovesD3(treespace_gekc$pc, treeNames = tree_names_gekc)
+```
+
+```{r}
+#Detecting the number of groups
+#id_cluster_gekc <- findGroves(treespace_gekc)
+#600
+#y
+
+id_cluster_gekc <- findGroves(treespace_gekc, nclust = 2)
+plotGrovesD3(id_cluster_gekc)
+```
+
+```{r}
+#making a dataframe with the coordinates of the trees calculated by treespace(), cluster information, and rownmes 
+#for names of trees; group is not necessary because I have already calculated the number of groups with findGroves()
+df_gekc <- data.frame(id_cluster_gekc$treespace$pco$li, dataset=tree_names_gekc, Method=method_gekc$V1,
+                    group=id_cluster_gekc$groups, name=rownames(id_cluster_gekc$treespace$pco$li))
+#head(df_gekc)
+```
+
+```{r}
+df_gekc["sptree_vs_getree"] <- c("as", "sv", "c", "gp", "bs", NA, NA, NA, NA, NA, NA, NA, "matK", NA, NA, NA, NA, NA, "ndhF", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, "rbcL", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+#head(df_gekc)
+```
+
+
+```{r}
+#change order to avoid overlapping
+df2_ge_arrangedkc <- arrange(df_gekc, desc(Method))
+#head(df2_ge_arrangedkc)
+```
+
+```{r}
+#We use the round() and sum() to verify the percentage explained by each axis in the ordination
+round(treespace_gekc$pco$eig/sum(treespace_gekc$pco$eig),3)
+#Axis1 = 0.515, Axis2 = 0.082, Axis3 = 0.060, Axis4 = 0.048, Axis5 = 0.032
+```
+
+```{r}
+#Now we plot the graph
+df2_ge_arrangedkc$Method <- factor(df2_ge_arrangedkc$Method, levels(df2_ge_arrangedkc$Method)[c(1,6,2:5)])
+
+plot_KC_ge <- ggplot(df2_ge_arrangedkc, aes(x=A1, y=A2, color = Method, label = sptree_vs_getree)) +
+  geom_point(aes(color=Method, shape=Method), alpha=.8, size=4) + 
+  guides(size=F) + geom_hline(yintercept = 0, linetype="dashed") +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  geom_text_repel(size=6, box.padding=2, point.padding = 0.9, show.legend=FALSE) +
+  labs(x="PCoA1 (51.5%)", y=" PCoA2 (8.2%)") + 
+  theme_classic() + ggtitle("Kendall-Colijn - gene") +
+  theme(legend.text=element_text(size=12),legend.title=element_text(size=15),
+        plot.title = element_text(hjust = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  theme(axis.title=element_text(size = 12,face="bold"), axis.text=element_text(size=10,face="bold"))  +
+  scale_colour_manual(values = c("#000000", "#E69F00", "#CC79A7", "#009E73", "#F0E442", "#56B4E9"))+
+  scale_shape_manual(values=c(17, 17, 19, 19, 19, 19))
+plot_KC_ge
+```
+
+
+### 2.2. Amino Acid matrix
+#### 2.2.1. RF (amino acid matrix)
+```{r}
+setwd(getwd())
+```
+
+```{r}
+#first let's confirm we dropped the tips of species that are not present in all trees and let's unroot the tree
+#tree_aarf <- lapply(tree_aarf, drop.tip, c("Caryophyllales_Caryophyllaceae_Silene_capitata",
+#                                           "Myrtales_Myrtaceae_Xanthostemon_chrysanthus",
+#                                           "Fabales_Polygalaceae_Polygala_polygama"))
+#class(tree_aarf)
+#class(tree_aarf) <- "multiPhylo"
+#class(tree_aarf)
+#tree_aarf <- unroot(tree_aarf)
+#write.tree(tree_aarf, file="genetrees_aa_unrooted.nwk", d=0)
+```
+
+```{r}
+tree_aarf <- read.nexus("./input_unrooted/all_spgenetree_aa_rf.nex")
+class(tree_aarf)
+is.rooted.multiPhylo(tree_aarf)
+tree_names_aarf <- names(tree_aarf)
+tree_names_aarf
+```
+
+```{r}
+#This is to identify metadata
+method_aarf <- read.csv("all_spgenetree_aa.csv", h=F)
+```
+
+```{r}
+#Calculating the treespace
+treespace_aarf <- treespace(tree_aarf,  method = "RF", nf=65)
+#head(treespace_aarf)
+#head(treespace_aarf$pco$li)
+plotGrovesD3(treespace_aarf$pc, treeNames = tree_names_aarf)
+```
+
+```{R}
+#Detecting the number of groups
+#id_cluster_aarf <- findGroves(treespace_aarf, , method = RF)
+#300
+#y
+
+id_cluster_aarf <- findGroves(treespace_aarf, , method = RF, nclust = 2)
+plotGrovesD3(id_cluster_aarf)
+```
+
+
+```{r}
+#making a dataframe with the coordinates of the trees calculated by treespace(), cluster information, and rownmes 
+#for names of trees; group is not necessary because I have already calculated the number of groups with findGroves()
+df_aarf <- data.frame(id_cluster_aarf$treespace$pco$li, dataset=tree_names_aarf, Method=method_aarf$V1, group=id_cluster_aarf$groups, name=rownames(id_cluster_aarf$treespace$pco$li))
+#head(df_aarf)
+```
+
+```{r}
+df_aarf["sptree_vs_getree"] <- c("as", "c", "gp", "bs", NA, NA, NA, NA, NA, NA, NA, "matK", NA, NA, NA, NA, NA, "ndhF", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, "rbcL", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+#head(df_aarf)
+```
+
+```{r}
+#change order to avoid overlapping
+df2_aa_arrangedrf <- arrange(df_aarf, desc(Method))
+#head(df2_aa_arrangedrf)
+```
+
+```{r}
+#We use the round() and sum() to verify the percentage explained by each axis in the ordination
+round(treespace_aarf$pco$eig/sum(treespace_aarf$pco$eig),3)
+#Axis1 = 0.168, Axis2 = 0.029, Axis3=0.027, Axis4=0.026, Axis5=0.025
+```
+
+```{r}
+#Now we plot the graph
+#the next line is not necessary here because we don't have svdq_aa
+df2_aa_arrangedrf$Method <- factor(df2_aa_arrangedrf$Method, levels(df2_aa_arrangedrf$Method)[c(1,2:5)])
+plot_RF_aa <- ggplot(df2_aa_arrangedrf, aes(x=A1, y=A2, color = Method, label = sptree_vs_getree)) +
+  geom_point(aes(color=Method, shape=Method), alpha=.8, size=4) + 
+  guides(size=F) + geom_hline(yintercept = 0, linetype="dashed") +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  geom_text_repel(size=6, box.padding=2, point.padding = 0.8, show.legend=FALSE) +
+  labs(x="PCoA1 (16.8%)", y=" PCoA2 (2.9%)") + 
+  theme_classic() + ggtitle("Robinson-Foulds - amino acid") +
+  theme(legend.text=element_text(size=12),legend.title=element_text(size=15), plot.title = element_text(hjust = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  theme(axis.title=element_text(size = 12,face="bold"), axis.text=element_text(size=10,face="bold"))  +
+  scale_colour_manual(values = c("#000000", "#CC79A7", "#009E73", "#F0E442", "#56B4E9"))+
+  scale_shape_manual(values=c(17,19, 19, 19, 19))
+plot_RF_aa
+```
+
+#### 2.2.2. KC (amino acid matrix)
+```{r}
+#KC (amino acid matrix)
+tree_aa <- read.nexus("./input_rooted/all_spgenetree_aa_kc.nex")
+tree_aa
+tree_aa <- root(tree_aa, "Apiales_Araliaceae_Aralia_undulata", resolve.root = TRUE)
+is.rooted.multiPhylo(tree_aa)
+```
+
+```{r}
+class(tree_aa)
+tree_names_aa <- names(tree_aa)
+tree_names_aa
+```
+
+```{r}
+#This is to identify metadata
+method_aa <- read.csv("all_spgenetree_aa.csv", h=F)
+```
+
+```{r}
+#Calculating the treespace
+treespace_aa <- treespace(tree_aa, nf=65)
+#head(treespace_aa)
+#head(treespace_aa$pco$li)
+plotGrovesD3(treespace_aa$pc, treeNames = tree_names_aa)
+```
+
+```{r}
+#Detecting the number of groups
+#id_cluster_aa <- findGroves(treespace_aa)
+#1000
+#y
+
+id_cluster_aa <- findGroves(treespace_aa, nclust = 3)
+plotGrovesD3(id_cluster_aa, treeNames = tree_names_aa)
+```
+
+```{r}
+#making a dataframe with the coordinates of the trees calculated by treespace(), cluster information, and rownmes 
+#for names of trees; group is not necessary because I have already calculated the number of groups with findGroves()
+df_aa <- data.frame(id_cluster_aa$treespace$pco$li, dataset=tree_names_aa, Method=method_aa$V1,
+                    group=id_cluster_aa$groups, name=rownames(id_cluster_aa$treespace$pco$li))
+#head(df_aa)
+```
+
+```{r}
+df_aa["sptree_vs_getree"] <- c("as", "c", "gp", "bs", NA, NA, NA, NA, NA, NA, NA, "matK", NA, NA, NA, NA, NA, "ndhF", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, "rbcL", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+#head(df_aa)
+```
+
+
+```{R}
+#change order to avoid overlapping
+df2_aa_arranged <- arrange(df_aa, desc(Method))
+#head(df2_aa_arranged)
+```
+
+```{r}
+#We use the round() and sum() to verify the percentage explained by each axis in the ordination
+round(treespace_aa$pco$eig/sum(treespace_aa$pco$eig),3)
+#Axis1 = 0.264; Axis2 = 0.106, Axis3 = 0.083, Axis4 = 0.061, Axis5 = 0.042
+```
+
+```{r}
+#Now we plot the graph
+plot_KC_aa <- ggplot(df2_aa_arranged, aes(x=A1, y=A2, color = Method, label = sptree_vs_getree)) +
+  geom_point(aes(color=Method, shape=Method), alpha=.8, size=4) + 
+  guides(size=F) + geom_hline(yintercept = 0, linetype="dashed") +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  geom_text_repel(size=6, box.padding=2, point.padding = 0.8, show.legend=FALSE) +
+  labs(x="PCoA1 (26.4%)", y=" PCoA2 (10.6%)") + 
+  theme_classic() + ggtitle("Kendall-Colijn - amino acid") +
+  theme(legend.text=element_text(size=12),legend.title=element_text(size=15), plot.title = element_text(hjust = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  theme(axis.title=element_text(size = 12,face="bold"), axis.text=element_text(size=10,face="bold"))  +
+  scale_colour_manual(values = c("#000000", "#CC79A7", "#009E73", "#F0E442", "#56B4E9"))+
+  scale_shape_manual(values=c(17, 19, 19, 19, 19))
+plot_KC_aa
+```
+
+### 2.3. Exon matrix
+#### 2.3.1. RF (exon matrix)
+```{r}
+tree_exrf <- read.nexus("./input_unrooted/all_spgenetree_ex_rf.nex")
+is.rooted.multiPhylo(tree_exrf)
+```
+
+```{r}
+tree_names_exrf <- names(tree_exrf)
+tree_names_exrf
+```
+
+```{r}
+#This is to identify metadata
+method_exrf <- read.csv("all_spgenetree.csv", h=F)
+class(method_exrf)
+```
+
+```{r}
+#Calculating the treespace
+treespace_exrf <- treespace(tree_exrf,  method = "RF", nf=66)
+#head(treespace_exrf)
+#head(treespace_exrf$pco$li)
+plotGrovesD3(treespace_exrf$pc, treeNames = tree_names_exrf)
+```
+
+```{r}
+#Detecting the number of groups
+#id_cluster_exrf <- findGroves(treespace_exrf, method = "RF")
+#250
+#y
+
+id_cluster_exrf <- findGroves(treespace_exrf, method = "RF", nclust = 2)
+plotGrovesD3(id_cluster_exrf, treeNames = tree_names_exrf)
+```
+
+```{r}
+#making a dataframe with the coordinates of the trees calculated by treespace(), cluster information, and rownmes 
+#for names of trees; group is not necessary because I have already calculated the number of groups with findGroves()
+df_exrf <- data.frame(id_cluster_exrf$treespace$pco$li, dataset=tree_names_exrf, Method=method_exrf$V1,
+                      group=id_cluster_exrf$groups, name=rownames(id_cluster_exrf$treespace$pco$li))
+#head(df_exrf)
+```
+
+```{r}
+df_exrf["sptree_vs_getree"] <- c("as", "sv", "c", "gp", "bs", NA, NA, NA, NA, NA, NA, NA, "matK", NA, NA, NA, NA, NA, "ndhF", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, "rbcL", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+#head(df_exrf)
+```
+
+
+```{r}
+#change order to avoid overlapping
+df2_ex_arrangedrf <- arrange(df_exrf, desc(Method))
+#head(df2_ex_arrangedrf)
+```
+
+```{r}
+#We use the round() and sum() to verify the percentage explained by each axis in the ordination
+round(treespace_exrf$pco$eig/sum(treespace_exrf$pco$eig),3)
+#Axis1 = 0.147; Axis2 = 0.050, Axis3 = 0.041, Axis4 = 0.040, Axis5 = 0.039
+```
+
+
+```{r}
+#Now we plot the graph
+df2_ex_arrangedrf$Method <- factor(df2_ex_arrangedrf$Method, levels(df2_ex_arrangedrf$Method)[c(1,6,2:5)])
+
+plot_RF_ex <- ggplot(df2_ex_arrangedrf, aes(x=A1, y=A2, color = Method, label = sptree_vs_getree)) +
+  geom_point(aes(color=Method, shape=Method), alpha=.6, size=4) + 
+  guides(size=F) + geom_hline(yintercept = 0, linetype="dashed") +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  geom_text_repel(size=3, box.padding=1.1, point.padding = 0.6, show.legend=FALSE) +
+  labs(x="PCoA1 (14.7%)", y=" PCoA2 (5.0%)") + 
+  theme_classic() + ggtitle("Robinson-Foulds - exon") +
+  theme(legend.text=element_text(size=12),legend.title=element_text(size=15), plot.title = element_text(hjust = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  theme(axis.title=element_text(size = 12,face="bold"), axis.text=element_text(size=10,face="bold")) +
+  scale_colour_manual(values = c("#000000", "#E69F00", "#CC79A7", "#009E73", "#F0E442", "#56B4E9"))+
+  scale_shape_manual(values=c(17, 17, 19, 19, 19, 19))
+plot_RF_ex
+```
+
+
+#### 2.3.2. KC (exon matrix)
+```{r}
+#KC (Exon matrix)
+tree_ex <- read.nexus("input_rooted/all_spgenetree_ex_kc.nex")
+is.rooted.multiPhylo(tree_ex)
+tree_ex <- root(tree_ex, "Apiales_Araliaceae_Aralia_undulata", resolve.root = TRUE)
+is.rooted.multiPhylo(tree_ex)
+```
+
+```{r}
+tree_names_ex <- names(tree_ex)
+tree_names_ex
+```
+
+```{r}
+#This is to identify metadata
+method_ex <- read.csv("all_spgenetree.csv", h=F)
+```
+
+```{r}
+#Calculating the treespace
+treespace_ex <- treespace(tree_ex, nf=66)
+#head(treespace_ex$pco$li)
+```
+
+```{r}
+plotGrovesD3(treespace_ex$pc, treeNames = tree_names_ex)
+```
+
+```{r}
+#Detecting the number of groups
+#id_cluster_ex <- findGroves(treespace_ex)
+#580
+#y
+
+id_cluster_ex <- findGroves(treespace_ex, nclust = 3)
+plotGrovesD3(id_cluster_ex, treeNames = tree_names_ex)
+```
+
+```{r}
+#making a dataframe with the coordinates of the trees calculated by treespace(), cluster information, and rownmes 
+#for names of trees; group is not necessary because I have already calculated the number of groups with findGroves()
+df_ex <- data.frame(id_cluster_ex$treespace$pco$li, dataset=tree_names_ex, Method=method_ex$V1, 
+                    group=id_cluster_ex$groups, name=rownames(id_cluster_ex$treespace$pco$li))
+#head(df_ex)
+```
+
+```{r}
+df_ex["sptree_vs_getree"] <- c("as", "sv", "c", "gp", "bs", NA, NA, NA, NA, NA, NA, NA, "matK", NA, NA, NA, NA, NA, "ndhF", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, "rbcL", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+#head(df_ex)
+```
+
+
+```{r}
+#change order to avoid overlapping
+df2_ex_arranged <- arrange(df_ex, desc(Method))
+#head(df2_ex_arranged)
+```
+
+```{r}
+#We use the round() and sum() to verify the percentage explained by each axis in the ordination
+round(treespace_ex$pco$eig/sum(treespace_ex$pco$eig),3)
+#Axis1 = 0.521 Axis2 = 0.086, Axis3 = 0.061, Axis4 = 0.047, Axis5 = 0.031
+```
+
+```{r}
+#Now we plot the graph
+df2_ex_arranged$Method <- factor(df2_ex_arranged$Method, levels(df2_ex_arranged$Method)[c(1,6,2:5)])
+
+plot_KC_ex <- ggplot(df2_ex_arranged, aes(x=A1, y=A2, color = Method, label = sptree_vs_getree)) +
+  geom_point(aes(color=Method, shape=Method), alpha=.6, size=4) + 
+  guides(size=F) + geom_hline(yintercept = 0, linetype="dashed") +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  geom_text_repel(size=3, box.padding=1, point.padding = 0.6, show.legend=FALSE) +
+  labs(x="PCoA1 (52.1%)", y=" PCoA2 (8.6%)") + 
+  theme_classic() + ggtitle("Kendall-Colijn - exon") +
+  theme(legend.text=element_text(size=12),legend.title=element_text(size=15), plot.title = element_text(hjust = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  theme(axis.title=element_text(size = 12,face="bold"), axis.text=element_text(size=10,face="bold"))+
+  scale_colour_manual(values = c("#000000", "#E69F00", "#CC79A7", "#009E73", "#F0E442", "#56B4E9"))+
+  scale_shape_manual(values=c(17, 17, 19, 19, 19, 19))
+plot_KC_ex
+```
+
+### 2.4. Codon matrix
+#### 2.4.1. RF (codon matrix)
+```{r}
+#RF (codon matrix)
+tree_cdrf <- read.nexus("./input_unrooted/all_spgenetree_cd_rf.nex")
+is.rooted.multiPhylo(tree_cdrf)
+#tree_ex <- unroot(tree_cdrf)
+```
+
+```{r}
+tree_names_cdrf <- names(tree_cdrf)
+tree_names_cdrf
+```
+
+```{r}
+#This is to identify metadata
+method_cdrf <- read.csv("all_spgenetree.csv", h=F)
+```
+
+```{r}
+#Calculating the treespace
+treespace_cdrf <- treespace(tree_cdrf,  method = "RF", nf=66)
+#head(treespace_cdrf)
+#head(treespace_cdrf$pco$li)
+```
+
+```{r}
+plotGrovesD3(treespace_cdrf$pc, treeNames = tree_names_cdrf)
+```
+
+```{r}
+#Detecting the number of groups
+#id_cluster_cdrf <- findGroves(treespace_cdrf, method = "RF")
+#200
+#y
+
+id_cluster_cdrf <- findGroves(treespace_cdrf, method = "RF", nclust = 2)
+plotGrovesD3(id_cluster_cdrf, treeNames = tree_names_cdrf)
+```
+
+
+```{r}
+#making a dataframe with the coordinates of the trees calculated by treespace(), cluster information, and rownmes 
+#for names of trees; group is not necessary because I have already calculated the number of groups with findGroves()
+df_cdrf <- data.frame(id_cluster_cdrf$treespace$pco$li, dataset=tree_names_cdrf, Method=method_cdrf$V1,
+                      group=id_cluster_cdrf$groups, name=rownames(id_cluster_cdrf$treespace$pco$li))
+#head(df_cdrf)
+```
+
+```{r}
+df_cdrf["sptree_vs_getree"] <- c("as", "sv", "c", "gp", "bs", NA, NA, NA, NA, NA, NA, NA, "matK", NA, NA, NA, NA, NA, "ndhF", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, "rbcL", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+#head(df_cdrf)
+```
+
+
+```{r}
+#change order to avoid overlapping
+df2_cd_arrangedrf <- arrange(df_cdrf, desc(Method))
+#head(df2_cd_arrangedrf)
+```
+
+```{r}
+#We use the round() and sum() to verify the percentage explained by each axis in the ordination
+round(treespace_cdrf$pco$eig/sum(treespace_cdrf$pco$eig),3)
+#Axis1 = 0.147, Axis2 = 0.050, Axis3 = 0.041, Axis4 = 0.040, Axis5 = 0.039
+```
+
+```{r}
+#Now we plot the graph
+df2_cd_arrangedrf$Method <- factor(df2_cd_arrangedrf$Method, levels(df2_cd_arrangedrf$Method)[c(1,6,2:5)])
+
+plot_RF_cd <- ggplot(df2_cd_arrangedrf, aes(x=A1, y=A2, color = Method, label = sptree_vs_getree)) +
+  geom_point(aes(color=Method, shape=Method), alpha=.6, size=4) + 
+  guides(size=F) + geom_hline(yintercept = 0, linetype="dashed") +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  geom_text_repel(size=3, box.padding=1, point.padding = 0.6, show.legend=FALSE) +
+  labs(x="PCoA1 (14.7%)", y=" PCoA2 (0.05%)") + 
+  theme_classic() + ggtitle("Robinson-Foulds - codon") +
+  theme(legend.text=element_text(size=12),legend.title=element_text(size=15), plot.title = element_text(hjust = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  theme(axis.title=element_text(size = 12,face="bold"), axis.text=element_text(size=10,face="bold")) +
+  scale_colour_manual(values = c("#000000", "#E69F00", "#CC79A7", "#009E73", "#F0E442", "#56B4E9"))+
+  scale_shape_manual(values=c(17, 17, 19, 19, 19, 19))
+plot_RF_cd
+```
+
+
+#### 2.4.2. KC (codon matrix)
+```{r}
+#KC (codon matrix)
+tree_cd <- read.nexus("./input_rooted/all_spgenetree_cd_kc.nex")
+tree_cd
+is.rooted.multiPhylo(tree_cd)
+tree_cd <- root(tree_cd, "Apiales_Araliaceae_Aralia_undulata", resolve.root = TRUE)
+is.rooted.multiPhylo(tree_cd)
+```
+
+```{r}
+tree_names_cd <- names(tree_cd)
+tree_names_cd
+```
+```{r}
+#This is to identify metadata
+method_cd <- read.csv("all_spgenetree.csv", h=F)
+```
+
+```{r}
+#Calculating the treespace
+treespace_cd <- treespace(tree_cd, nf=66)
+#head(treespace_cd)
+#head(treespace_cd$pco$li)
+```
+
+```{r}
+plotGrovesD3(treespace_cd$pc, treeNames = tree_names_cd)
+```
+
+```{r}
+#Detecting the number of groups
+#id_cluster_cd <- findGroves(treespace_cd)
+#580
+#y
+
+id_cluster_cd <- findGroves(treespace_cd, nclust = 3)
+plotGrovesD3(id_cluster_cd, treeNames = tree_names_cd)
+```
+
+
+```{r}
+#making a dataframe with the coordinates of the trees calculated by treespace(), cluster information, and rownmes 
+#for names of trees; group is not necessary because I have already calculated the number of groups with findGroves()
+df_cd <- data.frame(id_cluster_cd$treespace$pco$li, dataset=tree_names_cd, Methods=method_cd$V1, 
+                    group=id_cluster_cd$groups, name=rownames(id_cluster_cd$treespace$pco$li))
+#head(df_cd)
+```
+
+```{r}
+df_cd["sptree_vs_getree"] <- c("as", "sv", "c", "gp", "bs", NA, NA, NA, NA, NA, NA, NA, "matK", NA, NA, NA, NA, NA, "ndhF", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, "rbcL", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+#head(df_cd)
+```
+
+```{r}
+#change order to avoid overlapping
+df2_cd_arranged <- arrange(df_cd, desc(Methods))
+#head(df2_cd_arranged)
+```
+
+```{r}
+#We use the round() and sum() to verify the percentage explained by each axis in the ordination
+round(treespace_cd$pco$eig/sum(treespace_cd$pco$eig),3)
+#Axis1 = 0.521, Axis2 = 0.086, Axis3 = 0.061, Axis4 = 0.047, Axis5 = 0.031
+```
+
+```{r}
+#Now we plot the graph
+df2_cd_arranged$Method <- factor(df2_cd_arranged$Method, levels(df2_cd_arranged$Method)[c(1,6,2:5)])
+
+plot_KC_cd <- ggplot(df2_cd_arranged, aes(x=A1, y=A2, color = Method, label = sptree_vs_getree)) +
+  geom_point(aes(color=Method, shape=Method), alpha=.6, size=4) + 
+  guides(size=F) + geom_hline(yintercept = 0, linetype="dashed") +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  geom_text_repel(size=3, box.padding=1.5, point.padding = 0.8, show.legend=FALSE) +
+  labs(x="PCoA1 (52.1%)", y=" PCoA2 (8.6%)") + 
+  theme_classic() + ggtitle("Kendall-Colijn - codon") +
+  theme(legend.text=element_text(size=12),legend.title=element_text(size=15), plot.title = element_text(hjust = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  theme(axis.title=element_text(size = 12,face="bold"), axis.text=element_text(size=10,face="bold"))  +
+  scale_colour_manual(values = c("#000000", "#E69F00", "#CC79A7", "#009E73", "#F0E442", "#56B4E9"))+
+  scale_shape_manual(values=c(17, 17, 19, 19, 19, 19))
+plot_KC_cd
+```
+
+Now we prepared the final figures:
+```{r fig.height=9, fig.width=9}
+#GENE and AMINO ACIDS
+#Now we combine both graphs using plot_grid()
+#First combining both graphs without a legend
+legend3 <- get_legend(plot_RF_ge + theme(legend.position="bottom"))
+ge_aa_plots <- plot_grid(plot_RF_ge + theme(legend.position="none"),
+                         plot_KC_ge + theme(legend.position="none"),
+                         plot_RF_aa + theme(legend.position="none"),
+                         plot_KC_aa + theme(legend.position="none"),
+                         align = 'vh', labels = c("A", "B", "C", "D"), hjust = -1, nrow = 2) 
+ge_aa_plots
+
+#Now adding the legend
+ge_aa_plots_onelegend <- plot_grid(ge_aa_plots, legend3, ncol=1, rel_heights = c(3, .5))
+ge_aa_plots_onelegend
+
+#Finally adding a title
+title <- ggdraw() + draw_label("Gene Trees Landscape", fontface='bold')
+ge_aa_plot <- plot_grid(title, ge_aa_plots_onelegend, ncol=1, rel_heights = c(0.1, 1))
+```
+
+```{r}
+#Saving pdf determining the size of the figure:
+#save_plot("./plot_ge_aa_2.pdf", ge_aa_plot, base_width=9, base_height=11)
+```
+
+```{r fig.height=9, fig.width=9}
+#EXON and CODON (SI)
+#Now we combine both graphs using plot_grid()
+#First combining both graphs without a legend
+legend4 <- get_legend(plot_RF_ex + theme(legend.position="bottom"))
+ex_cd_plots <- plot_grid(plot_RF_ex + theme(legend.position="none"),
+                         plot_KC_ex + theme(legend.position="none"),
+                         plot_RF_cd + theme(legend.position="none"),
+                         plot_KC_cd + theme(legend.position="none"),
+                         align = 'vh', labels = c("A", "B", "C", "D"), hjust = -1, nrow = 2) 
+ex_cd_plots
+
+#Now adding the legend
+ex_cd_plots_onelegend <- plot_grid(ex_cd_plots, legend4, ncol=1, rel_heights = c(3, .5))
+ex_cd_plots_onelegend
+
+#Finally adding a title
+title <- ggdraw() + draw_label("Gene Tree Landscape", fontface='bold')
+ex_cd_plot <- plot_grid(title, ex_cd_plots_onelegend, ncol=1, rel_heights=c(0.1, 1))
+```
+
+```{r}
+#Saving pdf determining the size of the figure:
+#save_plot("./plot_ex_cd.pdf", ex_cd_plot, base_width=8, base_height=8)
+```

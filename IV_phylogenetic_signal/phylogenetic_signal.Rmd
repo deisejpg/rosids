@@ -1,0 +1,1334 @@
+---
+title: "IV. Phylogenetic Signal"
+author: "Deise Gonçalves & Edgardo Ortiz; follows Shen et al. 2016"
+date: "2018/06/04"
+output:
+  html_document: default
+  pdf_document: default
+subtitle: Calculating phylogenetic signal in alternative topologies
+---
+  
+***  
+
+*Citation:*  
+__Gonçalves, DJP, Simpson, BB, Ortiz, E.M., Shimizu, GH, Jansen, RK. Incongruence between species tree and gene trees and phylogenetic signal variation in plastid genes. Molecular Phylogenetics and Evolution. In review__  
+
+__DJP Gonçalves, BB Simpson, GH Shimizu, RK Jansen, EM Ortiz. Genome assembly and phylogenomic data analyses using plastid data: contrasting species tree estimation methods. Data in Brief. Submitted__  
+
+***  
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import, include = "false"}
+library(ggplot2)
+library(phytools)
+library(skimr)
+library(gridExtra)
+library(cowplot)
+library(reshape2)
+```
+
+Before starting this tutorial you will need to run IQ-TREE to calculate the likelihood support per site for each alternative topology.  
+To run IQ-TREE you will need:  
+1. Three identical topologies* with a single incongruent node in ".nwk" format;  
+2. The alignment in ".phy" format;  
+3. the ".txt" file with the gene partition coordinates  
+  
+*Open the tree topologies in Figtree, go to "Trees" and select "equal". Then save with "Export trees" in newick format "as currently displayed". This way, topologies will be saved without branch lenghts.  
+
+In iqtree use the code below to calculate the log-likelihood of each site of your alignment considering the topology provided.   
+```{r}
+#iqtree-omp -nt 1 -st DNA -s conc_ex.phy -te T1_Erisma.nwk -m GTR+G -wsl -pre T1_Erisma
+#iqtree-omp -nt 1 -st DNA -s conc_ex.phy -te T2_Erisma.nwk -m GTR+G -wsl -pre T2_Erisma
+#iqtree-omp -nt 1 -st DNA -s conc_ex.phy -te T3_Erisma.nwk -m GTR+G -wsl -pre T3_Erisma
+```
+
+Now you are ready to go. Start by setting up the working directory.
+```{r}
+setwd(getwd())
+```
+
+Check that you have:  
+1. Three ".tre" files with alternative topologies  
+2. Three ".sitelh.t" with likelihood values for each alternative topology (calculated with IQ-TREE)  
+3. For delta gene-wise likelihood scores calculation you will also need the ".txt: file with genes coordinates  
+
+***
+
+Here we will perform calculations for five taxa: Zygophyllales, Oxalidales, Geraniales, Combretaceae and *Erisma*.  
+
+***
+
+## Alternative hypothesis for Zygophyllales placement   
+In this case, the three alternative topologies are based on the current classification of Zygphyllales (T1, supported by ASTRAL and IQ-TREE), T2 is supported by amino acid dataset with IQ-TREE/best scheme partition), and T3 is supported by SVDquartets (codon dataset).  
+Zygophyllales is indicated in red, the COM clade is indicated in yellow, and the malvid clade is indicated in black.  
+```{r fig.height=11, fig.width=9}
+T1_zygo <- read.tree("./reading_r/T1_Zygo.tre")     #Zygophyllales sister to other fabids
+T2_zygo <- read.tree("./reading_r/T2_Zygo.tre")     #Zygophyllales sister to COM clade
+T3_zygo <- read.tree("./reading_r/T3_Zygo.tre")     #Zygophyllales sister to malvids 
+par(mfcol=c(1,3))
+
+#Topology 1
+plot.phylo(T1_zygo, type="phylogram", cex=0.8, font = 1, x.lim = 70, no.margin=TRUE, edge.width=1, align.tip.label = TRUE, root.edge=TRUE)
+text(96:96,"T1", cex=2)
+#Zygophyllales position (sister to other fabids):
+nodelabels(pch=21, node=183, cex=2, bg="firebrick1")
+#COM clade:
+nodelabels(pch=21, node=162, cex=1.5, bg="dodgerblue1")
+#malvids:
+nodelabels(pch=21, node=99, cex=1.5, bg="black")
+
+#Topology 2
+plot.phylo(T2_zygo,  type="phylogram", cex=0.7, font = 1, x.lim = 72, no.margin=TRUE, edge.width=1, align.tip.label = TRUE)
+text(96:96,"T2", cex=2)
+#Combretaceae position (sister to Onagraceae + Lythraceae)
+nodelabels(pch=21, node=170, cex=2, bg="firebrick1")
+#COM clade
+nodelabels(pch=21, node=162, cex=1.5, bg="dodgerblue1")
+#malvids
+nodelabels(pch=21, node=99, cex=1.5, bg="black")
+
+#Topology 3
+plot.phylo(T3_zygo,  type="phylogram", cex=0.7, font = 1, x.lim = 76, no.margin=TRUE, edge.width=1, align.tip.label = TRUE)
+text(96:96,"T3", cex=2)
+#Combretaceae position (sister to AlzPenMelMyrVoc clade)
+nodelabels(pch=21, node=100, cex=2, bg="firebrick1")
+#COM clade
+nodelabels(pch=21, node=165, cex=1.5, bg="dodgerblue1")
+#malvids
+nodelabels(pch=21, node=99, cex=1.5, bg="black")
+```
+  
+*Supplementary Figure S21*
+  
+  
+### Zygophyllales - Differences in site-wise log-Likelihood - $\Delta$SLS
+Next we will create dataframes for the site-wise likelihood scores calculated in IQ-TREE for the exon dataset that contain 78 plastid genes concatenated. The calculations were performed for the three alternative hypothesis. We will also calculate the differences in site-wise log-likelihood scores or deltaSLS.
+
+First, we prepare a dataframe with site likelihood columns and necessary empty columns:
+```{r}
+zygo_slik <- cbind(read.csv("./reading_r/T1_Zygo.sitelh.t"),
+                   read.csv("./reading_r/T2_Zygo.sitelh.t"),
+                   read.csv("./reading_r/T3_Zygo.sitelh.t"),
+                   "mean.delta"="",
+                   "T123.sup"="",
+                   "T12.delta"="", "T12.delta.abs"="", "T12.sup"="",
+                   "T13.delta"="", "T13.delta.abs"="", "T13.sup"="",
+                   "T23.delta"="", "T23.delta.abs"="", "T23.sup"="",
+                   stringsAsFactors=FALSE)
+#head(zygo_slik)
+#Create a site ID column with numeric format
+zygo_slik$site <- as.numeric(rownames(zygo_slik))
+#Calculate mean delta for 3 hypothesis (see formula in Shen et al. 2017)
+zygo_slik$mean.delta <- ((abs(zygo_slik$T1-zygo_slik$T2))+(abs(zygo_slik$T1-zygo_slik$T3))+
+                           (abs(zygo_slik$T2-zygo_slik$T3)))/3
+#Logical comparisons to determine hypothesis with the highest support among the 3 topologies
+zygo_slik$T123.sup <- ifelse(zygo_slik$T1>zygo_slik$T2 & zygo_slik$T1>zygo_slik$T3, "T1",
+                         ifelse(zygo_slik$T2>zygo_slik$T1 & zygo_slik$T2>zygo_slik$T3, "T2",
+                            ifelse(zygo_slik$T3>zygo_slik$T1 & zygo_slik$T3>zygo_slik$T2, "T3",
+                                ifelse(zygo_slik$T1==zygo_slik$T2 & zygo_slik$T1==zygo_slik$T3 & 
+                                         zygo_slik$T2==zygo_slik$T3, "none",
+                                   ifelse(zygo_slik$T1==zygo_slik$T2, "not T3",
+                                      ifelse(zygo_slik$T1==zygo_slik$T2, "not T2",
+                                        ifelse(zygo_slik$T2==zygo_slik$T3, "not T1", " ")))))))
+
+#Delta of likelihoods for 2-hypotheses 
+#T1 vs T2
+zygo_slik$T12.delta <- zygo_slik$T1 - zygo_slik$T2
+#Store absolute value to sort and filter later
+zygo_slik$T12.delta.abs <- abs(zygo_slik$T12.delta)
+#Logical comparisons to determine the hypothesis with highest support
+zygo_slik$T12.sup <- ifelse(zygo_slik$T1>zygo_slik$T2, "T1",
+                            ifelse(zygo_slik$T1<zygo_slik$T2, "T2",
+                                   ifelse(zygo_slik$T1==zygo_slik$T2, "none", " ")))
+#T1 vs T3
+zygo_slik$T13.delta <- zygo_slik$T1 - zygo_slik$T3
+zygo_slik$T13.delta.abs <- abs(zygo_slik$T13.delta)
+zygo_slik$T13.sup <- ifelse(zygo_slik$T1>zygo_slik$T3, "T1",
+                            ifelse(zygo_slik$T1<zygo_slik$T3, "T3",
+                                   ifelse(zygo_slik$T1==zygo_slik$T3, "none", " ")))
+#T2 vs T3
+zygo_slik$T23.delta <- zygo_slik$T2 - zygo_slik$T3
+zygo_slik$T23.delta.abs <- abs(zygo_slik$T23.delta)
+zygo_slik$T23.sup <- ifelse(zygo_slik$T2>zygo_slik$T3, "T2",
+                            ifelse(zygo_slik$T2<zygo_slik$T3, "T3",
+                                   ifelse(zygo_slik$T2==zygo_slik$T3, "none", " ")))
+#Transform variables into factors
+zygo_slik$T123.sup <- as.factor(zygo_slik$T123.sup)
+zygo_slik$T12.sup <- as.factor(zygo_slik$T12.sup)
+zygo_slik$T13.sup <- as.factor(zygo_slik$T13.sup)
+zygo_slik$T23.sup <- as.factor(zygo_slik$T23.sup)
+#head(zygo_slik)
+```
+  
+Let's make 3-way Rokas plots for each case to see where in the genome are the sites that support these hypotheses and the relative abundance of sites supporting each one.  
+  
+For each graph we only select the 100 sites with the greatest deltas:  
+```{r fig.height=3, fig.width=5}
+#Panel A - Zygophyllales original relative site order (Figure S26)
+#to plot only 100 sites with strongest signal:
+zygo_plot <- head(zygo_slik[order(-zygo_slik$mean.delta),], 100)
+zygo_3way_cb <- ggplot(zygo_plot, aes(x=site, y=mean.delta, fill=T123.sup, color=T123.sup)) +
+  geom_point(stat="identity") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        legend.title = element_blank()) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey") +
+  geom_hline(yintercept = 2.5, linetype = "dashed", colour = "grey") +
+  scale_y_continuous(breaks = seq(-100, 100, by =1)) +
+  labs(title="Zygophyllales", x="", y=expression(paste(Delta,"SLS")))  +
+  scale_color_manual(values = c("#009E73", "#0072B2")) +
+  scale_fill_manual(values = c("#009E73", "#0072B2"))
+zygo_3way_cb
+```
+
+```{r fig.height=3, fig.width=5}
+#Panel B - Zygophyllales sites ordered by DeltaSLS (Figure S26)
+#to plot only 100 sites with strongest signal:
+zygo_plot_100 <- head(zygo_slik[order(-zygo_slik$mean.delta),], 100)
+zygo_3waysorted_100 <- ggplot(zygo_plot, aes(x=reorder(site, -mean.delta), y=mean.delta, fill=T123.sup, color=T123.sup)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        legend.title = element_blank(), axis.title.y=element_blank()) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey") +
+  geom_hline(yintercept = 2.5, linetype = "dashed", colour = "grey") +
+  scale_y_continuous(breaks = seq(-100, 100, by =5)) +
+  labs(title="Zygophyllales", x="", y=expression(paste(Delta,"SLS"))) +
+  scale_color_manual(values = c("#009E73", "#0072B2")) +
+  scale_fill_manual(values = c("#009E73", "#0072B2"))
+zygo_3waysorted_100
+```
+  
+*We will use cowplot later to combine subplots of all five taxa.*  
+  
+  
+To calculate how many sites support T2 and T3 among the 100 sites with strongest signal:
+```{r}
+summary(zygo_plot_100$T123.sup)
+```
+  
+To calculate how many sites support T1, T2 and T3 among all sites:
+```{r}
+summary(zygo_slik$T123.sup)
+```
+
+
+### Zygophyllales Gene-wise log-Likelihood - $\Delta$SLS  
+Load gene coordinates from partition file and create a dataframe with empty columns:  
+```{r}
+zygo_glik <- cbind(read.csv("./reading_r/ex_conc_part.txt.t"),
+                   "T1"="",
+                   "T2"="",
+                   "T3"="",
+                   "mean.delta"="",
+                   "T123.sup"="",
+                   "T12.delta"="",
+                   "T12.delta.abs"="",
+                   "T12.sup"="",
+                   "T13.delta"="",
+                   "T13.delta.abs"="",
+                   "T13.sup"="",
+                   "T23.delta"="",
+                   "T23.delta.abs"="",
+                   "T23.sup"="",
+                   stringsAsFactors=FALSE)
+#create a column for gene IDs as numeric
+zygo_glik$site <- as.numeric(rownames(zygo_glik))
+#the following loop sums ranges of rows from the slik dataframe based on the start and end coordinates
+#for the partition file
+for (g in 1:nrow(zygo_glik)){
+  zygo_glik$T1[g] <- sum(zygo_slik$T1[zygo_glik$start[g]:zygo_glik$end[g]])
+  zygo_glik$T2[g] <- sum(zygo_slik$T2[zygo_glik$start[g]:zygo_glik$end[g]])
+  zygo_glik$T3[g] <- sum(zygo_slik$T3[zygo_glik$start[g]:zygo_glik$end[g]])
+}
+#store sums as numeric type
+zygo_glik$T1 <- as.numeric(zygo_glik$T1)
+zygo_glik$T2 <- as.numeric(zygo_glik$T2)
+zygo_glik$T3 <- as.numeric(zygo_glik$T3)
+
+#mean delta gene wise likelihood for the 3 hypotheses
+zygo_glik$mean.delta <- ((abs(zygo_glik$T1- zygo_glik$T2))+(abs(zygo_glik$T1-zygo_glik$T3)) +
+                           (abs(zygo_glik$T2 - zygo_glik$T3)))/3
+#logical comparison to determine hypothesis with highest support
+zygo_glik$T123.sup <- ifelse(zygo_glik$T1>zygo_glik$T2 & zygo_glik$T1>zygo_glik$T3, "T1",
+                        ifelse(zygo_glik$T2>zygo_glik$T1 & zygo_glik$T2>zygo_glik$T3, "T2",
+                          ifelse(zygo_glik$T3>zygo_glik$T1 & zygo_glik$T3>zygo_glik$T2, "T3",
+                            ifelse(zygo_glik$T1==zygo_glik$T2 & zygo_glik$T1==zygo_glik$T3 & 
+                                     zygo_glik$T2==zygo_glik$T3, "none",
+                              ifelse(zygo_glik$T1==zygo_glik$T2, "no T3",
+                                ifelse(zygo_glik$T1==zygo_glik$T3, "no T2",
+                                  ifelse(zygo_glik$T2==zygo_glik$T3, "no T1", "")))))))
+# Delta gene likelihood for 3 hypotheses 
+#T1 vs T2
+zygo_glik$T12.delta <- zygo_glik$T1 - zygo_glik$T2
+# Storage of absolute values to sort and filter by column
+zygo_glik$T12.delta.abs <- abs(zygo_glik$T12.delta)
+#Logical comparison to determine hypothesis with highest support
+zygo_glik$T12.sup <-ifelse(zygo_glik$T1>zygo_glik$T2, "T1",
+                      ifelse(zygo_glik$T1<zygo_glik$T2, "T2",
+                        ifelse(zygo_glik$T1==zygo_glik$T2, "none", "")))
+#T1 vs T3
+zygo_glik$T13.delta <- zygo_glik$T1 - zygo_glik$T3
+zygo_glik$T13.delta.abs <- abs(zygo_glik$T13.delta)
+zygo_glik$T13.sup <-ifelse(zygo_glik$T1>zygo_glik$T3, "T1",
+                      ifelse(zygo_glik$T1<zygo_glik$T3, "T3",
+                        ifelse(zygo_glik$T1==zygo_glik$T3, "none", "")))
+#T2 vs T3
+zygo_glik$T23.delta <- zygo_glik$T2 - zygo_glik$T3
+zygo_glik$T23.delta.abs <- abs(zygo_glik$T23.delta)
+zygo_glik$T23.sup <-ifelse(zygo_glik$T2>zygo_glik$T3, "T2",
+                      ifelse(zygo_glik$T2<zygo_glik$T3, "T3",
+                        ifelse(zygo_glik$T2==zygo_glik$T3, "none", "")))
+#Transform variables into factors
+zygo_glik$T123.sup <- as.factor(zygo_glik$T123.sup)
+zygo_glik$T12.sup <- as.factor(zygo_glik$T12.sup)
+zygo_glik$T13.sup <- as.factor(zygo_glik$T13.sup)
+zygo_glik$T23.sup <- as.factor(zygo_glik$T23.sup)
+```
+  
+#### Now we plot:  
+```{r fig.height=3, fig.width=8}
+zygog_plot <- zygo_glik
+
+#Panel A (Figure 7)
+zygog_3waysorted_cb <- ggplot(zygog_plot, aes(x=reorder(gene, -mean.delta), y=mean.delta,
+                                              fill=T123.sup, color=T123.sup)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=90, hjust=1, vjust =0.5, size=8),
+        legend.title=element_blank(), axis.title.y=element_blank()) +
+  geom_hline(yintercept=0.5, linetype="dashed", colour="grey") +
+  scale_color_manual(values=c("#D55E00", "#009E73", "#0072B2")) +
+  scale_fill_manual(values=c("#D55E00", "#009E73", "#0072B2")) +
+  scale_y_continuous(breaks = seq(0, 15, by = 3)) +
+  labs(title = "Zygophyllales",
+       x="",
+       y=expression(paste(Delta,"GLS")))
+zygog_3waysorted_cb
+```
+  
+*We will use cowplot later to combine subplots of all five taxa.*  
+  
+  
+To calculate how many genes supported T1, T2 and T3:  
+```{r}
+summary(zygo_glik$T123.sup)
+```
+***
+
+***
+## Alternative hypothesis for Oxalidales placement  
+In this case, there were three alternative topologies: T1 based on the current classification of Oxalidales (recovered with low support in SVDquartets and some IQ-TREE inferences with the exon dataset); T2 was recovered with low support with some ML analysis; and T3 was recovered with ASTRAL-II and well supported trees inferred with IQ-TREE.  
+Red circle indicates Oxalidales, yellow circle indicates Malpighiales, and black indicates Celastrales crown node.  
+```{r fig.height=11, fig.width=9}
+T1_oxal <- read.tree("./reading_r/T1_COM.tre")
+#Oxalidales sister to Celastrales
+T2_oxal <- read.tree("./reading_r/T2_COM.tre")
+#Oxalidales sister to Malpighiales and Celastrales
+T3_oxal <- read.tree("./reading_r/T3_COM.tre")
+
+#Topology 1
+par(mfcol=c(1,3))
+plot.phylo(T1_oxal, cex=0.8, font=1, x.lim = 70, no.margin=TRUE,
+           edge.width=1, align.tip.label = TRUE)
+text(96:96,"T1", cex=2)
+#Oxalidales sister to Malpighiales
+nodelabels(pch=21, node=169, cex=2, bg="firebrick1")
+#Malpighiales
+nodelabels(pch=21, node=164, cex=1.5, bg="dodgerblue1")
+#Celastrales
+nodelabels(pch=21, node=162, cex=1.5, bg="black")
+
+#Topology 2
+plot.phylo(T2_oxal, cex=0.8, font=1, x.lim = 72, no.margin=TRUE,
+           edge.width=1, align.tip.label = TRUE)
+text(96:96,"T2", cex=2)
+#Oxalidales sister to Celastrales
+nodelabels(pch=21, node=164, cex=2, bg="firebrick1")
+#Malpighiales
+nodelabels(pch=21, node=165, cex=1.5, bg="dodgerblue1")
+#Celastrales
+nodelabels(pch=21, node=163, cex=1.5, bg="black")
+
+#Topology 3
+plot.phylo(T3_oxal, cex=0.8, font=1, x.lim = 74, no.margin=TRUE,
+           edge.width=1, align.tip.label = TRUE)
+text(96:96,"T3", cex=2)
+#Oxalidales sister to Malpighiales and Celastrales
+nodelabels(pch=21, node=169, cex=2, bg="firebrick1")
+#Malpighiales
+nodelabels(pch=21, node=164, cex=1.5, bg="dodgerblue1")
+#Celastrales
+nodelabels(pch=21, node=163, cex=1.5, bg="black")
+```
+*Supplementary Figure S22*
+
+   
+### Oxalidales Site-wise log-Likelihood - $\Delta$SLS  
+Next we will create dataframes for the site-wise likelihood scores calculates in IQ-TREE for the exon dataset taht contain 78 plastid genes concatenated. The calculations were performed for the three alternative hypothesis. We will also calculate the differences in site-wise log-likelihood scores or deltaSLS.  
+  
+First, we prepare a dataframe with site likelihood columns and necessary empty columns:  
+```{r}
+oxali_slik <- cbind(read.csv("./reading_r/T1_COM.sitelh.t"),
+                    read.csv("./reading_r/T2_COM.sitelh.t"),
+                    read.csv("./reading_r/T3_COM.sitelh.t"),
+                    "mean.delta"="",
+                    "T123.sup"="",
+                    "T12.delta"="", "T12.delta.abs"="", "T12.sup"="",
+                    "T13.delta"="", "T13.delta.abs"="", "T13.sup"="",
+                    "T23.delta"="", "T23.delta.abs"="", "T23.sup"="",
+                    stringsAsFactors=FALSE)
+#Create a site ID column with numeric format
+oxali_slik$site <- as.numeric(rownames(oxali_slik))
+
+#Calculate mean delta for 3 hypothesis (see formula in Shen et al. 2017)
+oxali_slik$mean.delta <- ((abs(oxali_slik$T1-oxali_slik$T2))+(abs(oxali_slik$T1-oxali_slik$T3))+
+                            (abs(oxali_slik$T2-oxali_slik$T3)))/3
+
+#Logical comparisons to determine hypothesis with the highest support among the 3 topologies
+oxali_slik$T123.sup <- ifelse(oxali_slik$T1>oxali_slik$T2 & oxali_slik$T1>oxali_slik$T3, "T1",
+                          ifelse(oxali_slik$T2>oxali_slik$T1 & oxali_slik$T2>oxali_slik$T3, "T2",
+                            ifelse(oxali_slik$T3>oxali_slik$T1 & oxali_slik$T3>oxali_slik$T2, "T3",
+                              ifelse(oxali_slik$T1==oxali_slik$T2 & oxali_slik$T1==oxali_slik$T3 & 
+                                       oxali_slik$T2==oxali_slik$T3, "none",
+                                ifelse(oxali_slik$T1==oxali_slik$T2, "not T3",
+                                  ifelse(oxali_slik$T1==oxali_slik$T2, "not T2",
+                                    ifelse(oxali_slik$T2==oxali_slik$T3, "not T1", " ")))))))
+
+#Delta of likelihoods for 3 hypotheses 
+#T1 vs T2
+oxali_slik$T12.delta <- oxali_slik$T1 - oxali_slik$T2
+#Store absolute value to sort and filter later
+oxali_slik$T12.delta.abs <- abs(oxali_slik$T12.delta)
+#Logical comparisons to determine the hypothesis with highest support
+oxali_slik$T12.sup <- ifelse(oxali_slik$T1>oxali_slik$T2, "T1",
+                        ifelse(oxali_slik$T1<oxali_slik$T2, "T2",
+                          ifelse(oxali_slik$T1==oxali_slik$T2, "none", " ")))
+#T1 vs T3
+oxali_slik$T13.delta <- oxali_slik$T1 - oxali_slik$T3
+oxali_slik$T13.delta.abs <- abs(oxali_slik$T13.delta)
+oxali_slik$T13.sup <- ifelse(oxali_slik$T1>oxali_slik$T3, "T1",
+                        ifelse(oxali_slik$T1<oxali_slik$T3, "T3",
+                          ifelse(oxali_slik$T1==oxali_slik$T3, "none", " ")))
+#T2 vs T3
+oxali_slik$T23.delta <- oxali_slik$T2 - oxali_slik$T3
+oxali_slik$T23.delta.abs <- abs(oxali_slik$T23.delta)
+oxali_slik$T23.sup <- ifelse(oxali_slik$T2>oxali_slik$T3, "T2",
+                        ifelse(oxali_slik$T2<oxali_slik$T3, "T3",
+                          ifelse(oxali_slik$T2==oxali_slik$T3, "none", " ")))
+#Transform variables into factors
+oxali_slik$T123.sup <- as.factor(oxali_slik$T123.sup)
+oxali_slik$T12.sup <- as.factor(oxali_slik$T12.sup)
+oxali_slik$T13.sup <- as.factor(oxali_slik$T13.sup)
+oxali_slik$T23.sup <- as.factor(oxali_slik$T23.sup)
+```
+   
+Let's make 3-way Rokas plots for each case to see where in the genome are the sites that support these hypotheses and the relative abundance of sites supporting each one.  
+  
+For each graph we only select the 100 sites with the greatest deltas: 
+```{r fig.height=3, fig.width=5}
+#Panel C - Oxalidales original relative site order (Figure S26)
+#to plot only 100 sites with strongest signal:
+oxali_plot <- head(oxali_slik[order(-oxali_slik$mean.delta),], 100)
+
+oxali_3way_cb <- ggplot(oxali_plot, aes(x=site, y=mean.delta, fill=T123.sup, color=T123.sup)) +
+  geom_point(stat="identity") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        legend.title = element_blank()) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey") +
+  geom_hline(yintercept = 2.5, linetype = "dashed", colour = "grey") +
+  scale_y_continuous(breaks = seq(-100, 100, by =1)) +
+  labs(title="Oxalidales", x="", y=expression(paste(Delta,"SLS")))  +
+  scale_color_manual(values = c("#D55E00", "#009E73", "#0072B2")) +
+  scale_fill_manual(values = c("#D55E00", "#009E73", "#0072B2"))
+oxali_3way_cb
+```
+  
+```{r fig.height=3, fig.width=5}
+#Panel D - Oxalidales sites ordered by DeltaSLS (Figure S26)
+#To plot only 100 sites with strongest signal:
+oxali_plot_100 <- head(oxali_slik[order(-oxali_slik$mean.delta),], 100)
+oxali_3waysorted_100 <- ggplot(oxali_plot_100, aes(x=reorder(site, -mean.delta), 
+                                           y=mean.delta, fill=T123.sup, color=T123.sup)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        legend.title = element_blank(), axis.title.y=element_blank()) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey") +
+  geom_hline(yintercept = 2.5, linetype = "dashed", colour = "grey") +
+  scale_y_continuous(breaks = seq(-100, 100, by =1)) +
+  labs(title="Oxalidales", x="", y=expression(paste(Delta,"SLS"))) +
+  scale_color_manual(values = c("#D55E00", "#009E73", "#0072B2")) +
+  scale_fill_manual(values = c("#D55E00", "#009E73", "#0072B2"))
+oxali_3waysorted_100
+```
+  
+*We will use cowplot at the end of this script (line 1278) to combine subplots of all five taxa.*  
+  
+  
+To calculate how many sites supported T1, T2 and T3 among the 100 sites with strongest signal:  
+```{r}
+summary(oxali_plot_100$T123.sup)
+```
+
+To calculate how many sites support T1, T2 and T3 among all sites:  
+```{r}
+summary(oxali_slik$T123.sup)
+```
+
+### Oxalidales Gene-wise log-Likelihood - $\Delta$GLS  
+Load gene coordinates from partition file and create a dataframe with empty columns:  
+```{r}
+oxali_glik <- cbind(read.csv("./reading_r/ex_conc_part.txt.t"),
+                    "T1"="",
+                    "T2"="",
+                    "T3"="",
+                    "mean.delta"="",
+                    "T123.sup"="",
+                    "T12.delta"="",
+                    "T12.delta.abs"="",
+                    "T12.sup"="",
+                    "T13.delta"="",
+                    "T13.delta.abs"="",
+                    "T13.sup"="",
+                    "T23.delta"="",
+                    "T23.delta.abs"="",
+                    "T23.sup"="",
+                    stringsAsFactors=FALSE)
+#Create a column for gene IDs as numeric
+oxali_glik$site <- as.numeric(rownames(oxali_glik))
+#The following loop sums ranges of rows from the slik dataframe based on the start and end coordinates
+#fro the partition file
+for (g in 1:nrow(oxali_glik)){
+  oxali_glik$T1[g] <- sum(oxali_slik$T1[oxali_glik$start[g]:oxali_glik$end[g]])
+  oxali_glik$T2[g] <- sum(oxali_slik$T2[oxali_glik$start[g]:oxali_glik$end[g]])
+  oxali_glik$T3[g] <- sum(oxali_slik$T3[oxali_glik$start[g]:oxali_glik$end[g]])
+}
+#Store sums as numeric type
+oxali_glik$T1 <- as.numeric(oxali_glik$T1)
+oxali_glik$T2 <- as.numeric(oxali_glik$T2)
+oxali_glik$T3 <- as.numeric(oxali_glik$T3)
+
+#Mean delta gene wise likelihood for the 3 hypotheses
+oxali_glik$mean.delta <- ((abs(oxali_glik$T1- oxali_glik$T2))+(abs(oxali_glik$T1-oxali_glik$T3)) +
+                            (abs(oxali_glik$T2 - oxali_glik$T3)))/3
+#Logical comparison to determine hypothesis with highest support
+oxali_glik$T123.sup <- ifelse(oxali_glik$T1>oxali_glik$T2 & oxali_glik$T1>oxali_glik$T3, "T1",
+                          ifelse(oxali_glik$T2>oxali_glik$T1 & oxali_glik$T2>oxali_glik$T3, "T2",
+                              ifelse(oxali_glik$T3>oxali_glik$T1 & oxali_glik$T3>oxali_glik$T2, "T3",
+                                  ifelse(oxali_glik$T1==oxali_glik$T2 & oxali_glik$T1==oxali_glik$T3 &
+                                           oxali_glik$T2==oxali_glik$T3, "none",
+                                      ifelse(oxali_glik$T1==oxali_glik$T2, "no T3",
+                                          ifelse(oxali_glik$T1==oxali_glik$T3, "no T2",
+                                              ifelse(oxali_glik$T2==oxali_glik$T3, "no T1", "")))))))
+# Delta gene likelihood for 3 hypotheses 
+#T1 vs T2
+oxali_glik$T12.delta <- oxali_glik$T1 - oxali_glik$T2
+# Storage of absolute values to sort and filter by column
+oxali_glik$T12.delta.abs <- abs(oxali_glik$T12.delta)
+#Logical comparison to determine hypothesis with highest support
+oxali_glik$T12.sup <-ifelse(oxali_glik$T1>oxali_glik$T2, "T1",
+                        ifelse(oxali_glik$T1<oxali_glik$T2, "T2",
+                            ifelse(oxali_glik$T1==oxali_glik$T2, "none", "")))
+#T1 vs T3
+oxali_glik$T13.delta <- oxali_glik$T1 - oxali_glik$T3
+oxali_glik$T13.delta.abs <- abs(oxali_glik$T13.delta)
+oxali_glik$T13.sup <-ifelse(oxali_glik$T1>oxali_glik$T3, "T1",
+                        ifelse(oxali_glik$T1<oxali_glik$T3, "T3",
+                            ifelse(oxali_glik$T1==oxali_glik$T3, "none", "")))
+#T2 vs T3
+oxali_glik$T23.delta <- oxali_glik$T2 - oxali_glik$T3
+oxali_glik$T23.delta.abs <- abs(oxali_glik$T23.delta)
+oxali_glik$T23.sup <-ifelse(oxali_glik$T2>oxali_glik$T3, "T2",
+                        ifelse(oxali_glik$T2<oxali_glik$T3, "T3",
+                            ifelse(oxali_glik$T2==oxali_glik$T3, "none", "")))
+#Transform variables into factors
+oxali_glik$T123.sup <- as.factor(oxali_glik$T123.sup)
+oxali_glik$T12.sup <- as.factor(oxali_glik$T12.sup)
+oxali_glik$T13.sup <- as.factor(oxali_glik$T13.sup)
+oxali_glik$T23.sup <- as.factor(oxali_glik$T23.sup)
+```
+
+
+#### Now we plot:
+```{r fig.height=3, fig.width=8}
+oxalig_plot <- oxali_glik
+
+#Panel B (Figure 7)
+oxalig_3waysorted_cb <- ggplot(oxalig_plot, aes(x=reorder(gene, -mean.delta), y=mean.delta,
+                                             fill=T123.sup, color=T123.sup)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=90, hjust=1, vjust =0.5, size=8),
+        legend.title=element_blank(), axis.title.y=element_blank()) +
+  geom_hline(yintercept=0.5, linetype="dashed", colour="grey") +
+  scale_color_manual(values=c("#D55E00", "#009E73", "#0072B2")) +
+  scale_fill_manual(values=c("#D55E00", "#009E73", "#0072B2")) +
+  scale_y_continuous(breaks = seq(0, 15, by = 2)) +
+  labs(title = "Oxalidales",
+       x="",
+       y=expression(paste(Delta,"GLS")))
+oxalig_3waysorted_cb
+```
+  
+*We will use cowplot later to combine subplots of all five taxa.*  
+  
+  
+To calculate how many sites supported T1, T2, and T3 among all genes:
+```{r}
+summary(oxali_glik$T123.sup)
+```
+***
+
+
+***
+## Alternative hypothesis for Geraniales placement 
+```{r fig.height=11, fig.width=8}
+#Geraniales sister to Myrtales
+T1_gerani <- read.tree("./reading_r/T1_Geran.tre")
+#Geraniales sister to all other malvid orders
+T2_gerani <- read.tree("./reading_r/T2_Geran.tre")
+
+par(mfcol=c(1,2))
+#now, plot the tree marking the three nodes that refer to Geraniales placement in the three topologies
+plot.phylo(T1_gerani, cex=0.7, font=1, x.lim = 80, label.offset = 0.3, no.margin=TRUE,
+           edge.width=1, align.tip.label = TRUE)
+text(96:96,"T1", cex=2)
+#Geraniales (sister to Myrtales)
+nodelabels(pch=21, node=119, cex=2, bg="firebrick1")
+#Myrtales
+nodelabels(pch=21, node=126, cex=1.5, bg="dodgerblue1")
+#malvids
+nodelabels(pch=21, node=99, cex=1.5, bg="black")
+
+#{plot.phylo(T2_gerani, cex=0.9, label.offset = 0.3, no.margin=TRUE, edge.width=1) + nodelabels()}
+plot.phylo(T2_gerani, cex=0.7, font=1, x.lim = 80, label.offset = 0.3, no.margin=TRUE,
+           edge.width=1, align.tip.label = TRUE)
+text(96:96,"T2", cex=2)
+#Geraniales (siter to other malvids)
+nodelabels(pch=21, node=100, cex=2, bg="firebrick1")
+#Myrtales
+nodelabels(pch=21, node=126, cex=1.5, bg="dodgerblue1")
+#malvids
+nodelabels(pch=21, node=107, cex=1.5, bg="black")
+```
+  
+*Supplementary Figure S23*  
+  
+    
+In this case, there were two alternative topologies inferred; T1 represents the current classification of Geraniales (recovered with ASTRAL-II, codon dataset and IQ-TREE gene, exon, and codon datasets) and T2 which was recovered with ASTRAL-II (gene, exon, and amino acid datasets), SVDquartets (all datasets) and IQ-TREE (amino acid dataset).
+Red circle indicates Geraniales position in the malvids, either as sister of Myrtales (yellow) or sister to all other orders of malvids (black).  
+  
+### Geraniales Site-wise log-Likelihood - $\Delta$SLS  
+Next we will create dataframes for the site-wise likelihood scores calculates in IQ-TREE for the exon dataset taht contain 78 plastid genes concatenated. The calculations were performed for the two alternative hypothesis. We will also calculate the differences in site-wise log-likelihood scores or deltaSLS. 
+  
+First, we prepare a dataframe with site likelihood columns and necessary empty columns:  
+```{r}
+gerani_slik <- cbind(read.csv("./reading_r/T1_Geran.sitelh.t"),
+                     read.csv("./reading_r/T2_Geran.sitelh.t"),
+                     "mean.delta"="",
+                     "T12.sup"="",
+                     "T12.delta"="", "T12.delta.abs"="", "T12.sup"="",
+                     stringsAsFactors=FALSE)
+#head(gerani_slik)
+#Create a site ID column with numeric format
+gerani_slik$site <- as.numeric(rownames(gerani_slik))
+
+#Calculate mean delta for 3 hypothesis (see formula in Shen et al. 2017)
+gerani_slik$mean.delta <- ((abs(gerani_slik$T1-gerani_slik$T2)))
+
+#Logical comparisons to determine hypothesis with the highest support among the 3 topologies
+gerani_slik$T12.sup <- ifelse(gerani_slik$T1>gerani_slik$T2, "T1",
+                              ifelse(gerani_slik$T2>gerani_slik$T1, "T2",
+                                     ifelse(gerani_slik$T1==gerani_slik$T2, "none", " ")))
+
+#Delta of likelihoods for 2 hypotheses 
+#T1 vs T2
+gerani_slik$T12.delta <- gerani_slik$T1 - gerani_slik$T2
+#Store absolute value to sort and filter later
+gerani_slik$T12.delta.abs <- abs(gerani_slik$T12.delta)
+#Logical comparisons to determine the hypothesis with highest support
+gerani_slik$T12.sup <- ifelse(gerani_slik$T1>gerani_slik$T2, "T1",
+                          ifelse(gerani_slik$T1<gerani_slik$T2, "T2",
+                            ifelse(gerani_slik$T1==gerani_slik$T2, "none", " ")))
+
+#Transform variables into factors
+gerani_slik$T12.sup <- as.factor(gerani_slik$T12.sup)
+```
+  
+Let's make 2-way Rokas plots for each case to see where in the genome are the sites that support these hypotheses and the relative abundance of sites supporting each one.  
+  
+For each graph we only select the 100 sites with the greatest deltas:
+```{r fig.height=3, fig.width=5}
+#Panel E - Geraniales original relative site order (Figure S26)
+#to plot only 100 sites with strongest signal:
+gerani_plot <- head(gerani_slik[order(-gerani_slik$mean.delta),], 100)
+
+gerani_3way_cb <- ggplot(gerani_plot, aes(x=site, y=mean.delta, fill=T12.sup, color=T12.sup)) +
+  geom_point(stat="identity") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        legend.title = element_blank()) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey") +
+  geom_hline(yintercept = 2.5, linetype = "dashed", colour = "grey") +
+  scale_y_continuous(breaks = seq(-100, 100, by =1)) +
+  labs(title="Geraniales", x="", y=expression(paste(Delta,"SLS"))) +
+  scale_color_manual(values = c("#D55E00", "#009E73")) +
+  scale_fill_manual(values = c("#D55E00", "#009E73"))
+gerani_3way_cb
+```
+
+```{r fig.height=3, fig.width=5}
+#Panel F - Geraniales sites ordered by DeltaSLS (Figure S26)
+#To plot only 100 sites with strongest signal:
+gerani_plot_100 <- head(gerani_slik[order(-gerani_slik$mean.delta),], 100)
+gerani_3waysorted_100 <- ggplot(gerani_plot_100, aes(x=reorder(site, -mean.delta), 
+                                             y=mean.delta, fill=T12.sup, color=T12.sup)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        legend.title = element_blank(), axis.title.y=element_blank()) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey") +
+  geom_hline(yintercept = 2.5, linetype = "dashed", colour = "grey") +
+  scale_y_continuous(breaks = seq(-100, 100, by =1)) +
+  labs(title="Geraniales", x="", y=expression(paste(Delta,"SLS"))) +
+  scale_color_manual(values = c("#D55E00", "#009E73")) +
+  scale_fill_manual(values = c("#D55E00", "#009E73"))
+gerani_3waysorted_100
+```
+  
+*We will use cowplot at the end of this script (line 1278) to combine subplots of all five taxa.*  
+  
+  
+To calculate how many sites supported T1 and T2 among the 100 sites with strongest signal:  
+```{r}
+summary(gerani_plot_100$T12.sup)
+```
+  
+To calculate how many sites support T1 and T2 among all sites:  
+```{r}
+summary(gerani_slik$T12.sup)
+```
+  
+  
+### Geraniales Gene-wise log-Likelihood - $\Delta$GLS
+Load gene coordinates from partition file and create a dataframe with empty columns:
+```{r}
+gerani_glik <- cbind(read.csv("./reading_r/ex_conc_part.txt.t"),
+                     "T1"="",
+                     "T2"="",
+                     "mean.delta"="",
+                     "T12.delta"="",
+                     "T12.delta.abs"="",
+                     "T12.sup"="",
+                     stringsAsFactors=FALSE)
+#Create a column for gene IDs as numeric
+gerani_glik$site <- as.numeric(rownames(gerani_glik))
+#The following loop sums ranges of rows from the slik dataframe based on the start and end coordinates
+#fro the partition file
+for (g in 1:nrow(gerani_glik)){
+  gerani_glik$T1[g] <- sum(gerani_slik$T1[gerani_glik$start[g]:gerani_glik$end[g]])
+  gerani_glik$T2[g] <- sum(gerani_slik$T2[gerani_glik$start[g]:gerani_glik$end[g]])
+}
+#Store sums as numeric type
+gerani_glik$T1 <- as.numeric(gerani_glik$T1)
+gerani_glik$T2 <- as.numeric(gerani_glik$T2)
+
+#Mean delta gene wise likelihood for the 3 hypotheses
+gerani_glik$mean.delta <- abs(gerani_glik$T1-gerani_glik$T2)
+#Logical comparison to determine hypothesis with highest support
+gerani_glik$T12.sup <- ifelse(gerani_glik$T1>gerani_glik$T2, "T1",
+                          ifelse(gerani_glik$T2>gerani_glik$T1, "T2",
+                              ifelse(gerani_glik$T1==gerani_glik$T2, "none", "")))
+# Delta gene likelihood for 2 hypotheses 
+#T1 vs T2
+gerani_glik$T12.delta <- gerani_glik$T1 - gerani_glik$T2
+# Storage of absolute values to sort and filter by column
+gerani_glik$T12.delta.abs <- abs(gerani_glik$T12.delta)
+#Logical comparison to determine hypothesis with highest support
+gerani_glik$T12.sup <-ifelse(gerani_glik$T1>gerani_glik$T2, "T1",
+                        ifelse(gerani_glik$T1<gerani_glik$T2, "T2",
+                          ifelse(gerani_glik$T1==gerani_glik$T2, "none", "")))
+#Transform variables into factors
+gerani_glik$T12.sup <- as.factor(gerani_glik$T12.sup)
+```
+
+#### Now we plot:
+```{r fig.height=3, fig.width=8}
+geranig_plot <- gerani_glik
+
+#Panel C (Figure 7)
+geranig_3waysorted_cb <- ggplot(geranig_plot, aes(x=reorder(gene, -mean.delta), y=mean.delta,
+                                               fill=T12.sup, color=T12.sup)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=90, hjust=1, vjust =0.5, size=8),
+        legend.title=element_blank()) +
+  geom_hline(yintercept=0.5, linetype="dashed", colour="grey") +
+  scale_color_manual(values=c("#D55E00", "#009E73", "#0072B2")) +
+  scale_fill_manual(values=c("#D55E00", "#009E73", "#0072B2")) +
+  scale_y_continuous(breaks = seq(0, 15, by = 3)) +
+  labs(title = "Geraniales",
+       x="",
+       y=expression(paste(Delta,"GLS")))
+geranig_3waysorted_cb
+```
+  
+*We will use cowplot at the end of this script (line 1278) to combine subplots of all five taxa.*  
+  
+  
+To calculate how many sites support T1 and T2 among all genes:
+```{r}
+summary(gerani_glik$T12.sup)
+```
+***
+
+***
+## Alternative hypothesis for Combretaceae placement 
+```{r fig.height=11, fig.width=9}
+T1_combret <- read.tree("./reading_r/T1_Combret.tre")     #Combretaceae sister to all other Myrtales families
+T2_combret <- read.tree("./reading_r/T2_Combret.tre")     #Combretaceae sister to Lythraceae and Onagraceae
+T3_combret <- read.tree("./reading_r/T3_Combret.tre")     #Combretaceae sister to AlzPenMelMyrVoc clade     ar(mfcol=c(1,3))
+par(mfcol=c(1,3))
+#{plot.phylo(T1_combret, cex=0.9, label.offset = 0.3, no.margin=TRUE, edge.width=1) + nodelabels()}
+#now, plot the tree marking the three nodes that refer to Combretaceae placement in Myrtales in the three topologies
+plot.phylo(T1_combret, cex=0.8, font=1, x.lim = 76, no.margin=TRUE,
+           edge.width=1, align.tip.label = TRUE)
+text(96:96,"T1", cex=2)
+nodelabels(pch=21, node=159, cex=2, bg="firebrick1") # Combretaceae position (sister to other Myrtales)
+nodelabels(pch=21, node=151, cex=1.5, bg="dodgerblue1") # Onagraceae + Lytthraceae
+nodelabels(pch=21, node=128, cex=1.5, bg="black") # Other families of Myrtales (AlzPenMelMyrVoc clade), except Onagraceae + Lythraceae
+
+#{plot.phylo(T2_combret, cex=0.9, label.offset = 0.3, no.margin=TRUE, edge.width=1) + nodelabels()}
+plot.phylo(T2_combret, cex=0.8, font=1, x.lim = 72, no.margin=TRUE,
+           edge.width=1, align.tip.label = TRUE)
+text(96:96,"T2", cex=2)
+nodelabels(pch=21, node=151, cex=2, bg="firebrick1") # Combretaceae position (sister to Onagraceae + Lythraceae)
+nodelabels(pch=21, node=152, cex=1.5, bg="dodgerblue1") # Onagraceae + Lythraceae
+nodelabels(pch=21, node=127, cex=1.5, bg="black") # Other families of Myrtales (AlzPenMelMyrVoc clade), except Onagraceae + Lythraceae
+
+#{plot.phylo(T3_combret, cex=0.9, label.offset = 0.3, no.margin=TRUE, edge.width=1) + nodelabels()}
+plot.phylo(T3_combret, cex=0.8, font=1, x.lim = 78, no.margin=TRUE,
+           edge.width=1, align.tip.label = TRUE)
+text(96:96,"T3", cex=2)
+nodelabels(pch=21, node=128, cex=2, bg="firebrick1") # Combretaceae position (sister to AlzPenMelMyrVoc clade)
+nodelabels(pch=21, node=152, cex=1.5, bg="dodgerblue1") # Onagraceae + Lythraceae
+nodelabels(pch=21, node=129, cex=1.5, bg="black") # Other families of Myrtales (AlzPenMelMyrVoc clade), except Onagraceae + Lythraceae
+```
+  
+*Supplementary Figure S24*
+
+
+In this case, there are three alternative topologies; the first one based on the current classification of Combretaceae (T1), and the other two topologies were inferred with MSC and ML. 
+Red indicates the position of Combretaceae, Lythraceae+Onagraceae clade is indicated in yellow, and the clade with all other myrtalean families is indicated in black.
+  
+## Combretaceae Site-wise log-Likelihood - $\Delta$SLS
+Next we will create dataframes for the site-wise likelihood scores calculates in IQ-TREE for the exon dataset taht contain 78 plastid genes concatenated. The calculations were performed for the three alternative hypothesis. We will also calculate the differences in site-wise log-likelihood scores or deltaSLS.
+
+First, we prepare a dataframe with site likelihood columns and necessary empty columns:
+```{r}
+combret_slik <- cbind(read.csv("./reading_r/T1_Combret.sitelh.t"),
+                      read.csv("./reading_r/T2_Combret.sitelh.t"),
+                      read.csv("./reading_r/T3_Combret.sitelh.t"),
+                      "mean.delta"="",
+                      "T123.sup"="",
+                      "T12.delta"="", "T12.delta.abs"="", "T12.sup"="",
+                      "T13.delta"="", "T13.delta.abs"="", "T13.sup"="",
+                      "T23.delta"="", "T23.delta.abs"="", "T23.sup"="",
+                      stringsAsFactors=FALSE)
+
+#Create a site ID column with numeric format
+combret_slik$site <- as.numeric(rownames(combret_slik))
+
+#Calculate mean delta for 3 hypothesis (see formula in Shen et al. 2017)
+combret_slik$mean.delta <- ((abs(combret_slik$T1-combret_slik$T2))+(abs(combret_slik$T1-combret_slik$T3))+
+                              (abs(combret_slik$T2-combret_slik$T3)))/3
+
+#Logical comparisons to determine hypothesis with the highest support among the 3 topologies
+combret_slik$T123.sup <- ifelse(combret_slik$T1>combret_slik$T2 & combret_slik$T1>combret_slik$T3, "T1",
+                            ifelse(combret_slik$T2>combret_slik$T1 & combret_slik$T2>combret_slik$T3, "T2",
+                              ifelse(combret_slik$T3>combret_slik$T1 & combret_slik$T3>combret_slik$T2, "T3",
+                                ifelse(combret_slik$T1==combret_slik$T2 & combret_slik$T1==combret_slik$T3 &
+                                         combret_slik$T2==combret_slik$T3, "none",
+                                  ifelse(combret_slik$T1==combret_slik$T2, "not T3",
+                                    ifelse(combret_slik$T1==combret_slik$T2, "not T2",
+                                      ifelse(combret_slik$T2==combret_slik$T3, "not T1", " ")))))))
+
+#Delta of likelihoods for 2-hypotheses 
+#T1 vs T2
+combret_slik$T12.delta <- combret_slik$T1 - combret_slik$T2
+#Store absolute value to sort and filter later
+combret_slik$T12.delta.abs <- abs(combret_slik$T12.delta)
+#Logical comparisons to determine the hypothesis with highest support
+combret_slik$T12.sup <- ifelse(combret_slik$T1>combret_slik$T2, "T1",
+                          ifelse(combret_slik$T1<combret_slik$T2, "T2",
+                            ifelse(combret_slik$T1==combret_slik$T2, "none", " ")))
+#T1 vs T3
+combret_slik$T13.delta <- combret_slik$T1 - combret_slik$T3
+combret_slik$T13.delta.abs <- abs(combret_slik$T13.delta)
+combret_slik$T13.sup <- ifelse(combret_slik$T1>combret_slik$T3, "T1",
+                          ifelse(combret_slik$T1<combret_slik$T3, "T3",
+                            ifelse(combret_slik$T1==combret_slik$T3, "none", " ")))
+#T2 vs T3
+combret_slik$T23.delta <- combret_slik$T2 - combret_slik$T3
+combret_slik$T23.delta.abs <- abs(combret_slik$T23.delta)
+combret_slik$T23.sup <- ifelse(combret_slik$T2>combret_slik$T3, "T2",
+                               ifelse(combret_slik$T2<combret_slik$T3, "T3",
+                                      ifelse(combret_slik$T2==combret_slik$T3, "none", " ")))
+#Transform variables into factors
+combret_slik$T123.sup <- as.factor(combret_slik$T123.sup)
+combret_slik$T12.sup <- as.factor(combret_slik$T12.sup)
+combret_slik$T13.sup <- as.factor(combret_slik$T13.sup)
+combret_slik$T23.sup <- as.factor(combret_slik$T23.sup)
+```
+  
+Let's make 3-way Rokas plots for each case to see where in the genome are the sites that support these hypotheses and the relative abundance of sites supporting each one.  
+  
+For each graph we only select the 100 sites with the greatest deltas:
+```{r fig.height=3, fig.width=5}
+#Panel G - Combretaceae original relative site order (Figure S26)
+#to plot only 100 sites with strongest signal:
+combret_plot <- head(combret_slik[order(-combret_slik$mean.delta),], 100)
+
+combret_3way_cb <- ggplot(combret_plot, aes(x=site, y=mean.delta, fill=T123.sup, color=T123.sup)) +
+  geom_point(stat="identity") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        legend.title = element_blank()) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey") +
+  geom_hline(yintercept = 2.5, linetype = "dashed", colour = "grey") +
+  scale_y_continuous(breaks = seq(-100, 100, by = 1)) +
+  labs(title="Combretaceae", x="", y=expression(paste(Delta,"SLS"))) +
+  scale_color_manual(values=c("#009E73", "#0072B2")) +
+  scale_fill_manual(values=c("#009E73", "#0072B2"))
+combret_3way_cb
+```
+
+
+```{r fig.height=3, fig.width=5}
+#Panel H - Combretaceae sites ordered by DeltaSLS (Figure S26)
+#to plot only 100 sites with strongest signal:
+combret_plot_100 <- head(combret_slik[order(-combret_slik$mean.delta),], 100)
+combret_3waysorted_100 <- ggplot(combret_plot_100, aes(x=reorder(site, -mean.delta), 
+                                               y=mean.delta, fill=T123.sup, color=T123.sup)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        legend.title = element_blank(), axis.title.y=element_blank()) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey") +
+  geom_hline(yintercept = 2.5, linetype = "dashed", colour = "grey") +
+  scale_y_continuous(breaks = seq(-100, 100, by = 1)) +
+  labs(title="Combretaceae", x="", y=expression(paste(Delta,"SLS"))) +
+  scale_color_manual(values = c("#009E73", "#0072B2")) +
+  scale_fill_manual(values = c("#009E73", "#0072B2"))
+combret_3waysorted_100
+```
+  
+*We will use cowplot later to combine subplots of all five taxa.*    
+  
+To calculate how many sites supported T1, T2 and T3 among the 100 sites with strongest signal:  
+```{r}
+#To calculate how many sites support T1 and T2 among the 100 sites with strongest signal:
+summary(combret_plot_100$T123.sup)
+```
+  
+To calculate how many sites supported T1, T2 and T3 among all sites:  
+```{r}
+#To calculate how many sites support T1 and T2 among all sites:
+summary(combret_slik$T123.sup)
+```
+
+
+
+### Combretaceae Gene-wise log-Likelihood - $\Delta$GLS
+Load gene coordinates from partition file and create a dataframe with empty columns:
+```{r}
+combret_glik <- cbind(read.csv("./reading_r/ex_conc_part.txt.t"),
+                      "T1"="",
+                      "T2"="",
+                      "T3"="",
+                      "mean.delta"="",
+                      "T123.sup"="",
+                      "T12.delta"="",
+                      "T12.delta.abs"="",
+                      "T12.sup"="",
+                      "T13.delta"="",
+                      "T13.delta.abs"="",
+                      "T13.sup"="",
+                      "T23.delta"="",
+                      "T23.delta.abs"="",
+                      "T23.sup"="",
+                      stringsAsFactors=FALSE)
+#Create a column for gene IDs as numeric
+combret_glik$site <- as.numeric(rownames(combret_glik))
+#The following loop sums ranges of rows from the slik dataframe based on the start and end coordinates for the partition file
+for (g in 1:nrow(combret_glik)){
+  combret_glik$T1[g] <- sum(combret_slik$T1[combret_glik$start[g]:combret_glik$end[g]])
+  combret_glik$T2[g] <- sum(combret_slik$T2[combret_glik$start[g]:combret_glik$end[g]])
+  combret_glik$T3[g] <- sum(combret_slik$T3[combret_glik$start[g]:combret_glik$end[g]])
+}
+#Store sums as numeric type
+combret_glik$T1 <- as.numeric(combret_glik$T1)
+combret_glik$T2 <- as.numeric(combret_glik$T2)
+combret_glik$T3 <- as.numeric(combret_glik$T3)
+
+#Mean delta gene wise likelihood for the 3 hypotheses
+combret_glik$mean.delta <- ((abs(combret_glik$T1- combret_glik$T2))+(abs(combret_glik$T1-combret_glik$T3)) +
+                              (abs(combret_glik$T2 - combret_glik$T3)))/3
+#Logical comparison to determine hypothesis with highest support
+combret_glik$T123.sup <- ifelse(combret_glik$T1>combret_glik$T2 & combret_glik$T1>combret_glik$T3, "T1",
+                            ifelse(combret_glik$T2>combret_glik$T1 & combret_glik$T2>combret_glik$T3, "T2",
+                              ifelse(combret_glik$T3>combret_glik$T1 & combret_glik$T3>combret_glik$T2, "T3",
+                                ifelse(combret_glik$T1==combret_glik$T2 & combret_glik$T1==combret_glik$T3 &
+                                         combret_glik$T2==combret_glik$T3, "none",
+                                  ifelse(combret_glik$T1==combret_glik$T2, "no T3",
+                                    ifelse(combret_glik$T1==combret_glik$T3, "no T2",
+                                      ifelse(combret_glik$T2==combret_glik$T3, "no T1", "")))))))
+# Delta gene likelihood for 3 hypotheses 
+#T1 vs T2
+combret_glik$T12.delta <- combret_glik$T1 - combret_glik$T2
+# Storage of absolute values to sort and filter by column
+combret_glik$T12.delta.abs <- abs(combret_glik$T12.delta)
+#Logical comparison to determine hypothesis with highest support
+combret_glik$T12.sup <-ifelse(combret_glik$T1>combret_glik$T2, "T1",
+                          ifelse(combret_glik$T1<combret_glik$T2, "T2",
+                              ifelse(combret_glik$T1==combret_glik$T2, "none", "")))
+#T1 vs T3
+combret_glik$T13.delta <- combret_glik$T1 - combret_glik$T3
+combret_glik$T13.delta.abs <- abs(combret_glik$T13.delta)
+combret_glik$T13.sup <-ifelse(combret_glik$T1>combret_glik$T3, "T1",
+                          ifelse(combret_glik$T1<combret_glik$T3, "T3",
+                            ifelse(combret_glik$T1==combret_glik$T3, "none", "")))
+#T2 vs T3
+combret_glik$T23.delta <- combret_glik$T2 - combret_glik$T3
+combret_glik$T23.delta.abs <- abs(combret_glik$T23.delta)
+combret_glik$T23.sup <-ifelse(combret_glik$T2>combret_glik$T3, "T2",
+                              ifelse(combret_glik$T2<combret_glik$T3, "T3",
+                                     ifelse(combret_glik$T2==combret_glik$T3, "none", "")))
+#Transform variables into factors
+combret_glik$T123.sup <- as.factor(combret_glik$T123.sup)
+combret_glik$T12.sup <- as.factor(combret_glik$T12.sup)
+combret_glik$T13.sup <- as.factor(combret_glik$T13.sup)
+combret_glik$T23.sup <- as.factor(combret_glik$T23.sup)
+```
+
+#### Now we plot:
+```{r fig.height=3, fig.width=8}
+combretg_plot <- combret_glik
+
+#Panel D (Figure 7)
+combretg_3waysorted_cb <- ggplot(combretg_plot, aes(x=reorder(gene, -mean.delta), y=mean.delta,
+                                                 fill=T123.sup, color=T123.sup)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=90, hjust=1, vjust =0.5, size=8),
+        legend.title=element_blank()) +
+  geom_hline(yintercept=0.5, linetype="dashed", colour="grey") +
+  scale_color_manual(values=c("#D55E00", "#009E73", "#0072B2")) +
+  scale_fill_manual(values=c("#D55E00", "#009E73", "#0072B2")) +
+  scale_y_continuous(breaks = seq(0, 15, by = 3)) +
+  labs(title = "Combretaceae",
+       x="",
+       y=expression(paste(Delta,"GLS")))
+combretg_3waysorted_cb
+```
+  
+*We will use cowplot at the end of this script (line 1278) to combine subplots of all five taxa.*  
+  
+To calculate how many sites support T1, T2 and T3 among all genes:  
+```{r}
+summary(combret_glik$T123.sup)
+```
+***
+  
+  
+***
+## Alternative hypothesis for Erisma placement  
+In this case, there are three alternative topologies; the first one based on the current classification Erisma T1 was not recovered in any of our results (it was manually prepared), T2 was inferred in most analysis (IQ-TREE, ASTRAL-II), and T3 was inferred with SVDquartets.  
+Red circle indicates *Erisma* crown node, yellow circle indicates Vochysieae, and black circle indicates Erismeae.  
+```{r fig.height=11, fig.width=9}
+T1_erisma <- read.tree("./reading_r/T1_Erisma.tre")      #Erisma sister to Korupodendron and Erismadelphus (Erismeae tribe)
+T2_erisma <- read.tree("./reading_r/T2_Erisma.tre")      #Erisma sister to Vochysieae tribe
+T3_erisma <- read.tree("./reading_r/T3_Erisma.tre")      #Ersima sister to Vochysia and Salvertia (within Vochysieae tribe)
+par(mfcol=c(1,3))
+#{plot.phylo(T1_erisma, cex=0.9, label.offset = 0.3, no.margin=TRUE, edge.width=1) + nodelabels()}
+#nodelabels(), for example: {plot.phylo(T1, cex=0.9, label.offset = 0.3, no.margin=TRUE, edge.width=1) + nodelabels()}
+#now, plot the tree marking the three nodes that refer to Erisma placement in Vochysiaceae in the three topologies
+erisma_T1 <- plot.phylo(T1_erisma, cex=0.8, font=1, x.lim = 70, no.margin=TRUE,
+                        edge.width=1, align.tip.label = TRUE)
+text(96:96,"T1", cex=2)
+nodelabels(pch=21, node=148, cex=2, bg="firebrick1") # Erisma nested with Erismeae (current classification)
+nodelabels(pch=21, node=144, cex=1.5, bg="dodgerblue1") # Vochysieae tribe
+nodelabels(pch=21, node=149, cex=1.5, bg="black") # Erismeae tribe (african genera)
+
+#{plot.phylo(T2_erisma, cex=0.9, label.offset = 0.3, no.margin=TRUE, edge.width=1) + nodelabels()}
+erisma_T2 <- plot.phylo(T2_erisma, cex=0.8, font=1, x.lim = 72, no.margin=TRUE,
+                        edge.width=1, align.tip.label = TRUE)
+text(96:96,"T2", cex=2)
+nodelabels(pch=21, node=144, cex=2, bg="firebrick1") # Erisma nested with Vochysieae
+nodelabels(pch=21, node=145, cex=1.5, bg="dodgerblue1") # Vochysieae tribe
+nodelabels(pch=21, node=149, cex=1.5, bg="black") # Erismeae tribe (african genera)
+
+#{plot.phylo(T2_erisma, cex=0.9, label.offset = 0.3, no.margin=TRUE, edge.width=1) + nodelabels()}
+erisma_T3 <- plot.phylo(T3_erisma, cex=0.8, font=1, x.lim = 75, no.margin=TRUE,
+                        edge.width=1, align.tip.label = TRUE)
+text(96:96,"T3", cex=2)
+nodelabels(pch=21, node=147, cex=2, bg="firebrick1") # Erisma nested within Vochysieae, sister of VS clade
+nodelabels(pch=21, node=144, cex=1.5, bg="dodgerblue1") # Vochysieae tribe
+nodelabels(pch=21, node=149, cex=1.5, bg="black") # Erismeae tribe (african genera)
+```
+  
+*Supplementary Figure S25*
+
+
+### Erisma Site-wise log-Likelihood - $\Delta$SLS
+Next we will create dataframes for the site-wise likelihood scores calculated in IQ-TREE for the exon dataset taht contain 78 plastid genes concatenated. The calculations were performed for the three alternative hypothesis. We will also calculate the differences in site-wise log-likelihood scores or deltaSLS.  
+
+First, we prepare a dataframe with site likelihood columns and necessary empty columns:  
+```{r}
+erisma_slik <- cbind(read.csv("./reading_r/T1_Erisma.sitelh.t"),
+                     read.csv("./reading_r/T2_Erisma.sitelh.t"),
+                     read.csv("./reading_r/T3_Erisma.sitelh.t"),
+                     "mean.delta"="",
+                     "T123.sup"="",
+                     "T12.delta"="", "T12.delta.abs"="", "T12.sup"="",
+                     "T13.delta"="", "T13.delta.abs"="", "T13.sup"="",
+                     "T23.delta"="", "T23.delta.abs"="", "T23.sup"="",
+                     stringsAsFactors=FALSE)
+
+#Create a site ID column with numeric format
+erisma_slik$site <- as.numeric(rownames(erisma_slik))
+
+#Calculate mean delta for 3 hypothesis (see formula in Shen et al. 2017)
+erisma_slik$mean.delta <- ((abs(erisma_slik$T1-erisma_slik$T2))+(abs(erisma_slik$T1-erisma_slik$T3))+
+                             (abs(erisma_slik$T2-erisma_slik$T3)))/3
+
+#Logical comparisons to determine hypothesis with the highest support among the 3 topologies
+erisma_slik$T123.sup <- ifelse(erisma_slik$T1>erisma_slik$T2 & erisma_slik$T1>erisma_slik$T3, "T1",
+                          ifelse(erisma_slik$T2>erisma_slik$T1 & erisma_slik$T2>erisma_slik$T3, "T2",
+                            ifelse(erisma_slik$T3>erisma_slik$T1 & erisma_slik$T3>erisma_slik$T2, "T3",
+                              ifelse(erisma_slik$T1==erisma_slik$T2 & erisma_slik$T1==erisma_slik$T3 &
+                                       erisma_slik$T2==erisma_slik$T3, "none",
+                                ifelse(erisma_slik$T1==erisma_slik$T2, "not T3",
+                                  ifelse(erisma_slik$T1==erisma_slik$T2, "not T2",
+                                    ifelse(erisma_slik$T2==erisma_slik$T3, "not T1", " ")))))))
+
+#Delta of likelihoods for 2-hypotheses 
+#T1 vs T2
+erisma_slik$T12.delta <- erisma_slik$T1 - erisma_slik$T2
+#Store absolute value to sort and filter later
+erisma_slik$T12.delta.abs <- abs(erisma_slik$T12.delta)
+#Logical comparisons to determine the hypothesis with highest support
+erisma_slik$T12.sup <- ifelse(erisma_slik$T1>erisma_slik$T2, "T1",
+                          ifelse(erisma_slik$T1<erisma_slik$T2, "T2",
+                            ifelse(erisma_slik$T1==erisma_slik$T2, "none", " ")))
+#T1 vs T3
+erisma_slik$T13.delta <- erisma_slik$T1 - erisma_slik$T3
+erisma_slik$T13.delta.abs <- abs(erisma_slik$T13.delta)
+erisma_slik$T13.sup <- ifelse(erisma_slik$T1>erisma_slik$T3, "T1",
+                          ifelse(erisma_slik$T1<erisma_slik$T3, "T3",
+                            ifelse(erisma_slik$T1==erisma_slik$T3, "none", " ")))
+
+#T2 vs T3
+erisma_slik$T23.delta <- erisma_slik$T2 - erisma_slik$T3
+erisma_slik$T23.delta.abs <- abs(erisma_slik$T23.delta)
+erisma_slik$T23.sup <- ifelse(erisma_slik$T2>erisma_slik$T3, "T2",
+                          ifelse(erisma_slik$T2<erisma_slik$T3, "T3",
+                            ifelse(erisma_slik$T2==erisma_slik$T3, "none", " ")))
+
+#Transform variables into factors
+erisma_slik$T123.sup <- as.factor(erisma_slik$T123.sup)
+erisma_slik$T12.sup <- as.factor(erisma_slik$T12.sup)
+erisma_slik$T13.sup <- as.factor(erisma_slik$T13.sup)
+erisma_slik$T23.sup <- as.factor(erisma_slik$T23.sup)
+```
+
+Let's make 3-way Rokas plots for each case to see where in the genome are the sites that support these hypotheses and the relative abundance of sites supporting each one.  
+  
+For each graph we only select the 100 sites with the greatest deltas:
+```{r fig.height=3, fig.width=5}
+#Panel I - Erisma original relative site order by DeltaSLS (Figure S26)
+#to plot only 100 sites with strongest signal:
+erisma_plot <- head(erisma_slik[order(-erisma_slik$mean.delta),], 100)
+
+erisma_3way_cb <- ggplot(erisma_plot, aes(x=site, y=mean.delta, fill=T123.sup, color=T123.sup)) +
+  geom_point(stat="identity") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        legend.title = element_blank()) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey") +
+  geom_hline(yintercept = 2.5, linetype = "dashed", colour = "grey") +
+  scale_y_continuous(breaks = seq(-100, 100, by =1)) +
+  labs(title="Erisma", x=expression(paste("Original relative site order")),
+       y=expression(paste(Delta,"SLS"))) + theme(plot.title = element_text(face= 4)) +
+  scale_color_manual(values = c("#D55E00", "#009E73", "#0072B2")) +
+  scale_fill_manual(values = c("#D55E00", "#009E73", "#0072B2"))
+erisma_3way_cb
+```
+
+```{r fig.height=3, fig.width=5}
+#Panel J - Erisma sites ordered by DeltaSLS (Figure S26)
+#to plot only 100 sites with strongest signal:
+erisma_plot_100 <- head(erisma_slik[order(-erisma_slik$mean.delta),], 100)
+erisma_3waysorted_100 <- ggplot(erisma_plot_100, aes(x=reorder(site, -mean.delta), 
+                                                       y=mean.delta, fill=T123.sup, color=T123.sup)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        legend.title = element_blank(), axis.title.y=element_blank()) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey") +
+  geom_hline(yintercept = 2.5, linetype = "dashed", colour = "grey") +
+  scale_y_continuous(breaks = seq(-100, 100, by = 1)) +
+  labs(title="Erisma", x=expression(paste("Sites ordered by ",Delta, "SLS")),
+       y=expression(paste(Delta,"SLS"))) + theme(plot.title = element_text(face= 4)) +
+  scale_color_manual(values = c("#D55E00", "#009E73", "#0072B2")) +
+  scale_fill_manual(values = c("#D55E00", "#009E73", "#0072B2"))
+erisma_3waysorted_100
+```
+  
+*We will use cowplot later to combine subplots of all five taxa.*  
+  
+  
+To calculate how many sites support T1, T2 and T3 among the 100 sites with strongest signal:
+```{r}
+summary(erisma_plot_100$T123.sup)
+```
+
+To calculate how many sites support T1, T2 and T3 among all sites:
+```{r}
+summary(erisma_slik$T123.sup)
+```
+
+
+### Erisma Gene-wise log-Likelihood - $\Delta$GLS
+Load gene coordinates from partition file and create a dataframe with empty columns:
+```{r}
+erisma_glik <- cbind(read.csv("./reading_r/ex_conc_part.txt.t"),
+                     "T1"="",
+                     "T2"="",
+                     "T3"="",
+                     "mean.delta"="",
+                     "T123.sup"="",
+                     "T12.delta"="",
+                     "T12.delta.abs"="",
+                     "T12.sup"="",
+                     "T13.delta"="",
+                     "T13.delta.abs"="",
+                     "T13.sup"="",
+                     "T23.delta"="",
+                     "T23.delta.abs"="",
+                     "T23.sup"="",
+                     stringsAsFactors=FALSE)
+#Create a column for gene IDs as numeric
+erisma_glik$site <- as.numeric(rownames(erisma_glik))
+#The following loop sums ranges of rows from the slik dataframe based on the start and end coordinates for the partition file
+for (g in 1:nrow(erisma_glik)){
+  erisma_glik$T1[g] <- sum(erisma_slik$T1[erisma_glik$start[g]:erisma_glik$end[g]])
+  erisma_glik$T2[g] <- sum(erisma_slik$T2[erisma_glik$start[g]:erisma_glik$end[g]])
+  erisma_glik$T3[g] <- sum(erisma_slik$T3[erisma_glik$start[g]:erisma_glik$end[g]])
+}
+#Store sums as numeric type
+erisma_glik$T1 <- as.numeric(erisma_glik$T1)
+erisma_glik$T2 <- as.numeric(erisma_glik$T2)
+erisma_glik$T3 <- as.numeric(erisma_glik$T3)
+
+#Mean delta gene wise likelihood for the 3 hypotheses
+erisma_glik$mean.delta <- ((abs(erisma_glik$T1- erisma_glik$T2))+(abs(erisma_glik$T1-erisma_glik$T3)) +
+                              (abs(erisma_glik$T2 - erisma_glik$T3)))/3
+#Logical comparison to determine hypothesis with highest support
+erisma_glik$T123.sup <- ifelse(erisma_glik$T1>erisma_glik$T2 & erisma_glik$T1>erisma_glik$T3, "T1",
+                          ifelse(erisma_glik$T2>erisma_glik$T1 & erisma_glik$T2>erisma_glik$T3, "T2",
+                            ifelse(erisma_glik$T3>erisma_glik$T1 & erisma_glik$T3>erisma_glik$T2, "T3",
+                              ifelse(erisma_glik$T1==erisma_glik$T2 & erisma_glik$T1==erisma_glik$T3 &
+                                       erisma_glik$T2==erisma_glik$T3, "none",
+                                ifelse(erisma_glik$T1==erisma_glik$T2, "no T3",
+                                  ifelse(erisma_glik$T1==erisma_glik$T3, "no T2",
+                                    ifelse(erisma_glik$T2==erisma_glik$T3, "no T1", "")))))))
+# Delta gene likelihood for 3 hypotheses 
+#T1 vs T2
+erisma_glik$T12.delta <- erisma_glik$T1 - erisma_glik$T2
+# Storage of absolute values to sort and filter by column
+erisma_glik$T12.delta.abs <- abs(erisma_glik$T12.delta)
+#Logical comparison to determine hypothesis with highest support
+erisma_glik$T12.sup <-ifelse(erisma_glik$T1>erisma_glik$T2, "T1",
+                        ifelse(erisma_glik$T1<erisma_glik$T2, "T2",
+                          ifelse(erisma_glik$T1==erisma_glik$T2, "none", "")))
+#T1 vs T3
+erisma_glik$T13.delta <- erisma_glik$T1 - erisma_glik$T3
+erisma_glik$T13.delta.abs <- abs(erisma_glik$T13.delta)
+erisma_glik$T13.sup <-ifelse(erisma_glik$T1>erisma_glik$T3, "T1",
+                             ifelse(erisma_glik$T1<erisma_glik$T3, "T3",
+                                    ifelse(erisma_glik$T1==erisma_glik$T3, "none", "")))
+#T2 vs T3
+erisma_glik$T23.delta <- erisma_glik$T2 - erisma_glik$T3
+erisma_glik$T23.delta.abs <- abs(erisma_glik$T23.delta)
+erisma_glik$T23.sup <-ifelse(erisma_glik$T2>erisma_glik$T3, "T2",
+                             ifelse(erisma_glik$T2<erisma_glik$T3, "T3",
+                                    ifelse(erisma_glik$T2==erisma_glik$T3, "none", "")))
+#Transform variables into factors
+erisma_glik$T123.sup <- as.factor(erisma_glik$T123.sup)
+erisma_glik$T12.sup <- as.factor(erisma_glik$T12.sup)
+erisma_glik$T13.sup <- as.factor(erisma_glik$T13.sup)
+erisma_glik$T23.sup <- as.factor(erisma_glik$T23.sup)
+```
+  
+
+#### Now we plot:
+```{r fig.height=3, fig.width=8}
+erismag_plot <- erisma_glik
+
+#Panel E (Figure 7)
+erismag_3waysorted_cb <- ggplot(erismag_plot, aes(x=reorder(gene, -mean.delta), y=mean.delta,
+                                               fill=T123.sup, color=T123.sup)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=90, hjust=1, vjust =0.5, size=8),
+        legend.title=element_blank()) +
+  geom_hline(yintercept=0.5, linetype="dashed", colour="grey") +
+  scale_color_manual(values=c("#D55E00", "#009E73", "#0072B2")) +
+  scale_fill_manual(values=c("#D55E00", "#009E73", "#0072B2")) +
+  scale_y_continuous(breaks = seq(0, 15, by = 3)) +
+  labs(title = "Erisma",
+       x=expression(paste("Genes ordered by ",Delta,"GLS")),
+       y=expression(paste(Delta,"GLS"))) + theme(plot.title = element_text(face= "bold.italic"))
+erismag_3waysorted_cb
+```
+  
+*We will use cowplot later to combine subplots of all five taxa.*  
+  
+  
+To calculate how many sites support T1, T2, and T3 among all genes:
+```{r}
+summary(erisma_glik$T123.sup)
+```
+***
+
+
+***
+##### Use cowplot to organize all subplots into two figures (Figure 7 and Figure S26)
+  
+Site-wise plots with colorblind-friendly palette.   
+Following the letters from each taxa and ploting orginal DeltaSLS and ordered DeltaSLS:  
+```{r fig.height=11, fig.width=9}
+all5taxa_twoplots_cb <- plot_grid(zygo_3way_cb + theme(legend.position="none"), 
+                                  zygo_3waysorted_100 + theme(legend.position="none"),
+                               oxali_3way_cb + theme(legend.position="none"), 
+                               oxali_3waysorted_100 + theme(legend.position="none"),
+                               gerani_3way_cb + theme(legend.position="none"), 
+                               gerani_3waysorted_100 + theme(legend.position="none"),
+                               combret_3way_cb + theme(legend.position="none"), 
+                               combret_3waysorted_100 + theme(legend.position="none"),
+                               erisma_3way_cb + theme(legend.position="none"), 
+                               erisma_3waysorted_100 + theme(legend.position="none"),
+                               labels=c("A", "B", "C", "D", "E", "F", "G", "H", "I", "J"), ncol=2, nrow=5)
+
+legend_cb <- get_legend(erisma_3waysorted_100 + theme(legend.position="bottom", legend.justification="center"))
+sitewise_plot <- plot_grid(all5taxa_twoplots_cb, legend_cb, ncol=1, rel_heights = c(5,.2))
+sitewise_plot
+```
+
+Gene-wise plots with colorblind-friendly palette:  
+```{r fig.height=11, fig.width=9}
+all5taxa_orderedbygene_cb <- plot_grid(zygog_3waysorted_cb + theme(legend.position="none"),
+                                    oxalig_3waysorted_cb + theme(legend.position="none"),
+                                    geranig_3waysorted_cb + theme(legend.position="none"),
+                                    combretg_3waysorted_cb + theme(legend.position="none"),
+                                    erismag_3waysorted_cb + theme(legend.position="none"),
+                                    labels=c("A", "B", "C", "D", "E"),
+                                    align = 'v', hjust = -1, ncol=1, nrow=5)
+#Making a plot with only one legend and one title:
+legend_g_cb <- get_legend(erismag_3waysorted_cb + theme(legend.position="bottom", legend.justification="center"))
+genewiseplot_cb <- plot_grid(all5taxa_orderedbygene_cb, legend_g_cb, ncol=1, rel_heights = c(5,.2))
+genewiseplot_cb
+```
+***

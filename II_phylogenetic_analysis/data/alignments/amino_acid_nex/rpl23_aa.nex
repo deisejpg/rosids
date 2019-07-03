@@ -1,0 +1,200 @@
+#NEXUS
+begin taxa;
+	dimensions ntax=93;
+	taxlabels
+	Apiales_Araliaceae_Aralia_undulata
+	Brassicales_Brassicaceae_Brassica_napus
+	Brassicales_Caricaceae_Carica_papaya
+	Brassicales_Moringaceae_Moringa_oleifera
+	Brassicales_Salvadoraceae_Azima_tetracantha
+	Celastrales_Celastraceae_Euonymus_japonicus
+	Cucurbitales_Cucurbitaceae_Citrullus_lanatus
+	Cucurbitales_Cucurbitaceae_Cucumis_hystrix
+	Cucurbitales_Cucurbitaceae_Gynostemma_pentaphyllum
+	Fabales_Fabaceae_Cicer_arietinum
+	Fabales_Fabaceae_Inga_leiocalycina
+	Fabales_Fabaceae_Lupinus_luteus
+	Fabales_Polygalaceae_Polygala_polygama
+	Fagales_Betulaceae_Ostrya_rehderiana
+	Fagales_Fagaceae_Castanea_mollissima
+	Fagales_Juglandaceae_Juglans_regia
+	Geraniales_Francoaceae_Francoa_sonchifolia
+	Geraniales_Geraniaceae_Erodium_rupestre
+	Geraniales_Geraniaceae_Geranium_palmatum
+	Geraniales_Geraniaceae_Hypseocharis_bilobata
+	Geraniales_Geraniaceae_Monsonia_speciosa
+	Geraniales_Geraniaceae_Pelargonium_alternans
+	Geraniales_Melianthaceae_Melianthus_villosus
+	Geraniales_Vivianiaceae_Viviania_marifolia
+	Malpighiales_Chrysobalanaceae_Chrysobalanus_icaco
+	Malpighiales_Chrysobalanaceae_Hirtella_racemosa
+	Malpighiales_Erythroxylaceae_Erythroxylum_novogranatense
+	Malpighiales_Euphorbiaceae_Ricinus_comunis
+	Malpighiales_Malpighiaceae_Galphimia_angustifolia
+	Malpighiales_Salicaceae_Salyx_babilonica
+	Malvales_Malvaceae_Gossypium_turneri
+	Malvales_Malvaceae_Hibiscus_syriacus
+	Malvales_Malvaceae_Theobroma_cacao
+	Malvales_Thymelaeaceae_Aquilaria_sinensis
+	Myrtales_Alzateaceae_Alzatea_verticilata
+	Myrtales_Combretaceae_Laguncularia_racemosa
+	Myrtales_Combretaceae_Terminalia_catappa
+	Myrtales_Lythraceae_Heimia_myrtifolia
+	Myrtales_Lythraceae_Lagerstroemia_guilinensis
+	Myrtales_Lythraceae_Lagerstroemia_fauriei
+	Myrtales_Lythraceae_Lagerstroemia_indica
+	Myrtales_Melastomataceae_Blakea_schlimii
+	Myrtales_Melastomataceae_Henriettea_barkeri
+	Myrtales_Melastomataceae_Memecylon_pauciflorum
+	Myrtales_Melastomataceae_Miconia_dodecandra
+	Myrtales_Melastomataceae_Rhexia_virginica
+	Myrtales_Melastomataceae_Tibouchina_urvilleana
+	Myrtales_Myrtaceae_Allosyncarpia_ternata
+	Myrtales_Myrtaceae_Corymbia_eximia
+	Myrtales_Myrtaceae_Eucalyptus_globulus
+	Myrtales_Myrtaceae_Eugenia_uniflora
+	Myrtales_Myrtaceae_Heteropyxis_natalensis
+	Myrtales_Myrtaceae_Psidium_guajava
+	Myrtales_Myrtaceae_Stockwelllia_quadrifida
+	Myrtales_Myrtaceae_Xanthostemon_chrysanthus
+	Myrtales_Onagraceae_Ludwigia_octovalvis
+	Myrtales_Onagraceae_Oenothera_argillicola
+	Myrtales_Onagraceae_Oenothera_grandiflora
+	Myrtales_Onagraceae_Oenothera_oakesiana
+	Myrtales_Onagraceae_Oenothera_villaricae
+	Myrtales_Penaeaceae_Saltera_sarcocola
+	Myrtales_Vochysiaceae_Callisthene_erythroclada
+	Myrtales_Vochysiaceae_Erisma_bracteosum
+	Myrtales_Vochysiaceae_Erismadelphus_exsul
+	Myrtales_Vochysiaceae_Korupodendron_songweanum
+	Myrtales_Vochysiaceae_Qualea_grandiflora
+	Myrtales_Vochysiaceae_Ruizterania_albiflora
+	Myrtales_Vochysiaceae_Salvertia_convallariodora
+	Myrtales_Vochysiaceae_Vochysia_acuminata
+	Oxalidales_Oxalidaceae_Averrhoa_carambola
+	Oxalidales_Oxalidaceae_Oxalis_drumondii
+	Rosales_Cannabaceae_Cannabis_sativa
+	Rosales_Elaeagnaceae_Elaeagnus_macrophylla
+	Rosales_Moraceae_Morus_indica
+	Rosales_Rosaceae_Ficus_racemosa
+	Sapindales_Aceraceae_Acer_morrisonense
+	Sapindales_Aceraceae_Dipteronia_sinensis
+	Sapindales_Anacardiaceae_Anacardium_occidentale
+	Sapindales_Anacardiaceae_Mangifera_indica
+	Sapindales_Burseraceae_Boswellia_sacra
+	Sapindales_Meliaceae_Azadirachta_indica
+	Sapindales_Rutaceae_Citrus_aurantiifolia
+	Sapindales_Rutaceae_Zanthoxylum_piperitum
+	Sapindales_Sapindaceae_Dimocarpus_longan
+	Sapindales_Sapindaceae_Litchi_chinensis
+	Sapindales_Sapindaceae_Sapindus_mukorossi
+	Solanales_Solanaceae_Nicotiana_tabacum
+	Vitales_Vitaceae_Tetrastigma_hemsleyanum
+	Vitales_Vitaceae_Vitis_vinifera
+	Zygophyllales_Krameriaceae_Krameria_bicolor
+	Zygophyllales_Krameriaceae_Krameria_lanceolata
+	Zygophyllales_Zygophyllaceae_Guaiacum_angustifolium
+	Zygophyllales_Zygophyllaceae_Larrea_tridentata
+;
+end;
+
+begin characters;
+	dimensions nchar=123;
+	format datatype=protein missing=? gap=-;
+	matrix
+	Apiales_Araliaceae_Aralia_undulata	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGR-----GRRMGPIMGQTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Brassicales_Brassicaceae_Brassica_napus	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----VKRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Brassicales_Caricaceae_Carica_papaya	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----SRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Brassicales_Moringaceae_Moringa_oleifera	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Brassicales_Salvadoraceae_Azima_tetracantha	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGLTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Celastrales_Celastraceae_Euonymus_japonicus	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRPPGK-----GRRMGPIVGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Cucurbitales_Cucurbitaceae_Citrullus_lanatus	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Cucurbitales_Cucurbitaceae_Cucumis_hystrix	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Cucurbitales_Cucurbitaceae_Gynostemma_pentaphyllum	MDGIKYTVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Fabales_Fabaceae_Cicer_arietinum	MNGIKYAVFTDKSIRLL-GKNQYTFNVESGSIRTEIKHWV---ELFFGVKVIAINSHRLPIK-----GRRVRP--GHIMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Fabales_Fabaceae_Inga_leiocalycina	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPVK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Fabales_Fabaceae_Lupinus_luteus	MNGIKYAVFTDKSIRLL-VKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPVK-----GRRMRPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Fabales_Polygalaceae_Polygala_polygama	MDGIKYAVLTEKSLRLL-EKNQYTSNVESGSNRTEIKHWV---ELFFGVKVIGMNSHQLPVK-----GRRVGPITVHTMHYRRMIITLKP---GYSIPLLR----------NII---------
+	Fagales_Betulaceae_Ostrya_rehderiana	MNGIKYIVLTDKSIRLL-VKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPII----------KK----------
+	Fagales_Fagaceae_Castanea_mollissima	MNGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ERFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Fagales_Juglandaceae_Juglans_regia	MNGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Geraniales_Francoaceae_Francoa_sonchifolia	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Geraniales_Geraniaceae_Erodium_rupestre	MDAIKYAVFTYKSSRLL-GKNQYTFNVESGSTRTEIKYWV---ELFFGVKVIAMNSHRLPGK-----VRRVGPIRGHTMHYRRMIITLQP---GYSIPPLR----------KKRT-S------
+	Geraniales_Geraniaceae_Geranium_palmatum	MEGIQYAVFTEKSYRLL-GKNNYTSNVESGSTRT-----------------------------------------------------------------------------------------
+	Geraniales_Geraniaceae_Hypseocharis_bilobata	MDGIKYAVVTDKSVRLL-KKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----RRRRGPIMGHTMHYRRMIITLQP---GYSIPIFI----------ELIT--------
+	Geraniales_Geraniaceae_Monsonia_speciosa	MDGIQIAGWTYKRGRLF-NQNQYTFNVESGFTKGEVKSSILEFRFFKDAKVIAINSHRLPGKGKMRRGRGRGPIMGHRIHYKRMILTIQPKPGSYLRTPLP---------LQ-----------
+	Geraniales_Geraniaceae_Pelargonium_alternans	MDGIKYAVVTEKSLLLV-AINQYTFNVESGSTRTEIKSWV---ELFFGVKVIAMNSHRLPGK-----RRR----MGHTMHYRRMIITLQP---GYSIPPFRNLIFNLINNLNKKT-E------
+	Geraniales_Melianthaceae_Melianthus_villosus	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Geraniales_Vivianiaceae_Viviania_marifolia	MDGIKYAVFTDKSSRLS-KKNQYTFNVESGSTRTEIKHWA---ELFFGVKVIAMNSHRLPGK-----GRRIGPIMGHTMHYKRMIITLQP---GYSIPPVR----------TKRT--------
+	Malpighiales_Chrysobalanaceae_Chrysobalanus_icaco	MDGIQYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMRPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Malpighiales_Chrysobalanaceae_Hirtella_racemosa	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMRPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Malpighiales_Erythroxylaceae_Erythroxylum_novogranatense	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRPEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMRPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Malpighiales_Euphorbiaceae_Ricinus_comunis	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMRPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Malpighiales_Malpighiaceae_Galphimia_angustifolia	MNGIKYAVFTDKSIRLL-VKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPGK-----GRRMRPIMG--LHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Malpighiales_Salicaceae_Salyx_babilonica	MDGIKYAVVTDKSIRLL-LKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMRPIMGHTMHYKRMIITLQP---GYSIPPLR----------KKRT--------
+	Malvales_Malvaceae_Gossypium_turneri	MDGIKYVVVTDKSIRLL-VKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------TKRT--------
+	Malvales_Malvaceae_Hibiscus_syriacus	MDGIKYVVVTDKSIRLL-VKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----SRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------TKRT--------
+	Malvales_Malvaceae_Theobroma_cacao	MDGIKYVVVTDKSIRLL-VKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------TKRT--------
+	Malvales_Thymelaeaceae_Aquilaria_sinensis	MDGIKYAVFTEKSIRLL-AKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYKRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Alzateaceae_Alzatea_verticilata	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Combretaceae_Laguncularia_racemosa	MDRIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KNLN-Q---NT-
+	Myrtales_Combretaceae_Terminalia_catappa	MDRIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KNLN-Q---NT-
+	Myrtales_Lythraceae_Heimia_myrtifolia	MDGIKYAVFTDKSIRLL-VKNQYTSNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGR-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------TKRT--------
+	Myrtales_Lythraceae_Lagerstroemia_guilinensis	MDGIKYAVLTDKSIRLL-VKNRYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGR-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Lythraceae_Lagerstroemia_fauriei	MDGIKYAVLTDKSIRLL-VKNRYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGR-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Lythraceae_Lagerstroemia_indica	MDGIKYAVLTDKSIRLL-VKNRYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGR-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Melastomataceae_Blakea_schlimii	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEVKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKKK-NLNQNT-
+	Myrtales_Melastomataceae_Henriettea_barkeri	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKKK-NLNQNT-
+	Myrtales_Melastomataceae_Memecylon_pauciflorum	MDGIQYAVFTDKSIRLL-GKNQYTFNVESGSTRTEVKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKKK-NLNQNT-
+	Myrtales_Melastomataceae_Miconia_dodecandra	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEVKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKKKNNLNQNT-
+	Myrtales_Melastomataceae_Rhexia_virginica	MDGIKYAVFTDKSIRLL-GQNQYTFNVESGSTRTEVKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPIMGHTMHCRRMIITLQP---GYSIPPLR----------NKKK-N------
+	Myrtales_Melastomataceae_Tibouchina_urvilleana	MDGIKYAVLTDKSIRLL-GKNQYTFNVESGSTRTEVKDWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKKK-NLNQNT-
+	Myrtales_Myrtaceae_Allosyncarpia_ternata	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Myrtaceae_Corymbia_eximia	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Myrtaceae_Eucalyptus_globulus	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Myrtaceae_Eugenia_uniflora	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Myrtaceae_Heteropyxis_natalensis	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Myrtaceae_Psidium_guajava	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPRK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Myrtaceae_Stockwelllia_quadrifida	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Myrtaceae_Xanthostemon_chrysanthus	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Onagraceae_Ludwigia_octovalvis	MDGIKYAVFTDKSIRLL-GKNQYTSNVESESTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Onagraceae_Oenothera_argillicola	MDGIKYAVFTDKGVRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVQAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Onagraceae_Oenothera_grandiflora	MDGIKYAVFTDKGVRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVQAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Onagraceae_Oenothera_oakesiana	MDGIKYAVFTDKGVRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVQAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Onagraceae_Oenothera_villaricae	MDGIKYAVFTDKGVRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVQAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Penaeaceae_Saltera_sarcocola	MDGIKYAVFTDKSIRLL-GKNQYTFNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Vochysiaceae_Callisthene_erythroclada	MDGIKYAVFTDKSIRLL-VKNQYTSNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Vochysiaceae_Erisma_bracteosum	MDGIKYAVFTDKSIRLLVGKNQYTSNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPRK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Vochysiaceae_Erismadelphus_exsul	MDGIKYAVLTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Vochysiaceae_Korupodendron_songweanum	MDGIKYAVLTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Vochysiaceae_Qualea_grandiflora	MDGIKYAVFTDKSIRLL-VKNQYTSNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Vochysiaceae_Ruizterania_albiflora	MDGIKYAVFTDKSIRLL-VKNQYTSNVESGSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Vochysiaceae_Salvertia_convallariodora	MDGIKYAVFTDKSIRLL-VKNQYTSNVESRSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Myrtales_Vochysiaceae_Vochysia_acuminata	MDGIKYAVFTDKSIRLL-VKNQYTSNVESRSTRTEIKHWV---ELFFGVKVKAMNSHRLPGK-----GRRMGPILGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Oxalidales_Oxalidaceae_Averrhoa_carambola	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLLGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Oxalidales_Oxalidaceae_Oxalis_drumondii	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLLGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Rosales_Cannabaceae_Cannabis_sativa	MDGIKYFVVTDKSIRLL-LKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYKRMIITLQP---GYSIPPLI----------TKRT--------
+	Rosales_Elaeagnaceae_Elaeagnus_macrophylla	MDGIKYAVFTDKSLRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVMAMNSHRLPGK-----GRRMGPIMGHTMHYKRMIITLQP---GYSIPPVR----------KKRT--------
+	Rosales_Moraceae_Morus_indica	MDGIKYFVVTDKSIRLL-LKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYYIPPLI----------KKST--------
+	Rosales_Rosaceae_Ficus_racemosa	MDGIKYFVVTDKSIRLL-LKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRIPGK-----GRRMGPIMGHRMHYRRMIITLQP---GYYIPPLI----------KKRT--------
+	Sapindales_Aceraceae_Acer_morrisonense	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPRK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Sapindales_Aceraceae_Dipteronia_sinensis	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPRK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Sapindales_Anacardiaceae_Anacardium_occidentale	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Sapindales_Anacardiaceae_Mangifera_indica	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Sapindales_Burseraceae_Boswellia_sacra	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPRK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Sapindales_Meliaceae_Azadirachta_indica	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPRK-----GRRMGPIMGHTTHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Sapindales_Rutaceae_Citrus_aurantiifolia	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPRK-----GRRMGPIMAHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Sapindales_Rutaceae_Zanthoxylum_piperitum	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPRK-----GRRMGPIMAHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Sapindales_Sapindaceae_Dimocarpus_longan	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPPK-----GRRMGPIVGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Sapindales_Sapindaceae_Litchi_chinensis	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPPK-----GRRMGPIVGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Sapindales_Sapindaceae_Sapindus_mukorossi	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHQLPPK-----GRRMGPIVGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Solanales_Solanaceae_Nicotiana_tabacum	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----SRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Vitales_Vitaceae_Tetrastigma_hemsleyanum	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Vitales_Vitaceae_Vitis_vinifera	MDGIKYAVFTDKSIRLL-GKNQYTSNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Zygophyllales_Krameriaceae_Krameria_bicolor	MDGIKYVVLTDKSVLLL-GKNQYTLNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Zygophyllales_Krameriaceae_Krameria_lanceolata	MDGIKYVVLTDKSVLLL-GKNQYTLNVESGSTRTEIKHWV---ELFFGVKVIAMNSHRLPGK-----GRRMGPIMGHTMHYRRMIITLQP---GYSIPPLR----------KKRT--------
+	Zygophyllales_Zygophyllaceae_Guaiacum_angustifolium	MDGIKYSVVTDKGIRLL-LKNQYTFNVESGSTRTEIKHWV---ELFFGVKVIAVNSHRLPGK-----SRRMGPIMGHTMHYKRMIVTLPP---GYYIPPLR----------RKEL-K---SKY
+	Zygophyllales_Zygophyllaceae_Larrea_tridentata	MDGIKYSVVTDKGIRLL-LKNQYTFNVESGLTRTEIKHWV---ELFFGVKVIAVNSHRLPGK-----SRRMGPIMGHTMHYKRMIVTLPP---GYYIPPLR----------RKEL-K---SKD
+
+;
+end;
