@@ -1,4 +1,4 @@
-Here you will find all the code used in the analyses of Gonçalves et al. 2019 and the tutorials presented in Gonçalves et al. in review.  
+Here you will find all the code used in the analyses of Gonçalves et al. 2019 and the tutorials presented in Gonçalves et al. Available at [https://www.sciencedirect.com/science/article/pii/S1055790318306602] 
 
 
 ### I. genome_assembly
